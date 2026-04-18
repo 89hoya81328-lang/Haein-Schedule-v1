@@ -142,30 +142,18 @@ const FamilyBoard = () => {
         <div className="photo-carousel">
           <button className="car-btn" onClick={() => setMediaIndex(i => Math.max(0, i-1))} disabled={mediaIndex===0}><ChevronLeft size={18}/></button>
           <div className="car-body">
-            <div className="car-media-wrap">
+            <div className="car-media-wrap" onClick={() => setEditingMedia({ ...currentMedia })} style={{cursor:'pointer', position: 'relative'}}>
               <MediaItem item={currentMedia} className="car-img" />
               {currentMedia.type === 'video' && <span className="video-badge"><Play size={12}/> 동영상</span>}
+              <div style={{position: 'absolute', top: '10px', right: '10px', background: 'rgba(255,255,255,0.85)', padding: '6px 10px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '800', backdropFilter: 'blur(4px)', color: 'var(--text-main)'}}>
+                <Palette size={12}/> 꾸미기
+              </div>
             </div>
             <div className="car-meta">
               <span className="car-cap">{currentMedia.caption}</span>
               <span className="car-date">{currentMedia.date}</span>
             </div>
             
-            <div style={{display:'flex', gap:'10px', justifyContent:'center', marginTop:'12px'}}>
-              <button 
-                onClick={() => setEditingMedia({ ...currentMedia })}
-                style={{display:'flex', alignItems:'center', gap:'4px', background:'#f0f4f8', color:'#333', border:'none', padding:'6px 12px', borderRadius:'14px', fontSize:'0.85rem', fontWeight:'700', cursor:'pointer'}}
-              >
-                <Palette size={14}/> 꾸미기
-              </button>
-              <button 
-                onClick={() => deleteMedia(currentMedia.id)}
-                style={{display:'flex', alignItems:'center', gap:'4px', background:'#fff0f0', color:'#ff3b3b', border:'none', padding:'6px 12px', borderRadius:'14px', fontSize:'0.85rem', fontWeight:'700', cursor:'pointer'}}
-              >
-                <Trash2 size={14}/> 삭제
-              </button>
-            </div>
-
             <div className="car-dots">{media.map((_,i) => <span key={i} className={`dot ${i===mediaIndex?'active':''}`} onClick={() => setMediaIndex(i)}/>)}</div>
           </div>
           <button className="car-btn" onClick={() => setMediaIndex(i => Math.min(media.length-1, i+1))} disabled={mediaIndex===media.length-1}><ChevronRight size={18}/></button>
@@ -203,7 +191,11 @@ const FamilyBoard = () => {
                     <input type="text" value={editingMsgText} onChange={e => setEditingMsgText(e.target.value)} style={{flex:1, padding:'6px', borderRadius:'8px', border:'1px solid #ddd'}} />
                     <button onClick={() => saveEditMsg(m.id)} style={{background:'var(--text-main)', color:'white', border:'none', borderRadius:'6px', padding:'0 12px', fontWeight:'700'}}><Check size={14}/></button>
                   </div>
-                ) : m.text}
+                ) : (
+                  <div style={{display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden'}}>
+                    {m.text}
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -236,7 +228,10 @@ const FamilyBoard = () => {
           <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{maxWidth: '480px', margin:'auto', padding:'24px', borderRadius:'24px', maxHeight:'90vh', overflowY:'auto'}}>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #eee', paddingBottom:'16px', marginBottom:'20px'}}>
               <h4 style={{margin:0, fontSize:'1.2rem', fontWeight:'900', display:'flex', alignItems:'center', gap:'8px'}}><Palette size={20}/> 미디어 꾸미기</h4>
-              <button className="icon-btn" onClick={() => setEditingMedia(null)} style={{background:'#f0f0f0', border:'none', cursor:'pointer', borderRadius:'50%', width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center'}}><X size={18}/></button>
+              <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                <button onClick={() => { deleteMedia(editingMedia.id); setEditingMedia(null); }} style={{background:'#fff0f0', color:'#ff3b3b', border:'1px solid #ffebeb', borderRadius:'14px', padding:'8px 12px', fontWeight:'900', cursor:'pointer', display:'flex', alignItems:'center', gap:'4px'}}><Trash2 size={16}/> 삭제</button>
+                <button className="icon-btn" onClick={() => setEditingMedia(null)} style={{background:'#f0f0f0', border:'none', cursor:'pointer', borderRadius:'50%', width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center'}}><X size={18}/></button>
+              </div>
             </div>
             
             <div style={{display:'flex', flexDirection:'column', gap:'20px'}}>
@@ -281,12 +276,6 @@ const FamilyBoard = () => {
               </div>
 
               <div style={{display:'flex', gap:'10px', marginTop:'10px'}}>
-                <button 
-                  onClick={() => { deleteMedia(editingMedia.id); setEditingMedia(null); }}
-                  style={{width:'64px', flexShrink:0, padding:'14px 0', borderRadius:'16px', background:'#fff0f0', color:'#ff3b3b', fontWeight:'900', border:'1px solid #ffebeb', fontSize:'1rem', cursor:'pointer'}}
-                >
-                  <Trash2 size={20} style={{verticalAlign:'middle'}}/>
-                </button>
                 <button 
                   onClick={saveMediaEdit}
                   style={{flex:1, padding:'16px', borderRadius:'16px', background:'var(--text-main)', color:'white', fontWeight:'900', border:'none', fontSize:'1.05rem', cursor:'pointer'}}

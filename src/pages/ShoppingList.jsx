@@ -136,40 +136,41 @@ const ShoppingList = () => {
       {/* ===== MOBILE LAYOUT ===== */}
       <div className="shop-mobile">
         {/* Tab Switcher */}
-        <div className="shop-mobile-list" style={{gap: '16px', display: 'flex', flexDirection: 'column', padding: '16px'}}>
+        <div className="shop-mobile-list" style={{gap: '12px', display: 'flex', flexDirection: 'row', padding: '12px 16px', overflowX: 'hidden'}}>
           
           {/* Groceries Area */}
           <div 
             onClick={() => setActiveTab('g')}
             style={{
+              flex: 1, minWidth: 0,
               border: activeTab === 'g' ? '2px solid #2e7d32' : '2px solid transparent',
-              borderRadius: '24px', padding: '16px', 
+              borderRadius: '20px', padding: '12px', 
               background: '#f0f9f1',
               transition: 'all 0.2s', opacity: activeTab === 'g' ? 1 : 0.6,
               boxShadow: activeTab === 'g' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
               display: 'flex', flexDirection: 'column', gap: '8px'
             }}
           >
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
-              <h3 style={{display:'flex', alignItems:'center', gap:'6px', margin: 0, fontSize: '1.2rem', color: '#2e7d32'}}>
-                <Apple size={20}/> 식자재
+            <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '8px', textAlign: 'center'}}>
+              <h3 style={{display:'flex', alignItems:'center', gap:'6px', margin: '0 0 4px 0', fontSize: '1rem', color: '#2e7d32'}}>
+                <Apple size={16}/> 식자재
               </h3>
-              <span style={{fontSize: '0.85rem', color: '#555', fontWeight: 'bold'}}>{groceries.filter(i=>!i.checked).length}개 남음</span>
+              <span style={{fontSize: '0.75rem', color: '#555', fontWeight: 'bold'}}>{groceries.filter(i=>!i.checked).length}개 남음</span>
             </div>
             {groceries.length === 0 && (
               <div className="empty-state" style={{margin: '20px 0'}}>
-                <span className="empty-icon">🥬</span>
-                <p>항목이 없어요</p>
+                <span className="empty-icon" style={{fontSize: '1.5rem'}}>🥬</span>
+                <p style={{fontSize: '0.8rem'}}>비었어요</p>
               </div>
             )}
             {groceries.map(item => (
-              <div key={item.id} className={`shop-item-mobile ${item.checked ? 'done' : ''}`} onClick={(e) => { e.stopPropagation(); toggle(item.id, 'g'); }}>
-                <div className={`chk ${item.checked ? 'chk-on' : ''}`}/>
-                <span className="item-text">{item.text}</span>
+              <div key={item.id} className={`shop-item-mobile ${item.checked ? 'done' : ''}`} onClick={(e) => { e.stopPropagation(); toggle(item.id, 'g'); }} style={{padding:'8px 6px', gap:'6px', display:'flex', alignItems:'center'}}>
+                <div style={{flexShrink:0}} className={`chk ${item.checked ? 'chk-on' : ''}`}/>
+                <span className="item-text" style={{fontSize:'0.85rem', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.text}</span>
                 {item.isCoupang ? (
-                  <span className="rocket-badge" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 'g'); }}>🚀</span>
+                  <span className="rocket-badge" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 'g'); }} style={{padding:'2px', fontSize:'0.8rem'}}>🚀</span>
                 ) : (
-                  <button className="rocket-toggle-off" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 'g'); }}>🚀</button>
+                  <button className="rocket-toggle-off" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 'g'); }} style={{padding:'2px', fontSize:'0.8rem'}}>🚀</button>
                 )}
               </div>
             ))}
@@ -179,34 +180,35 @@ const ShoppingList = () => {
           <div 
             onClick={() => setActiveTab('s')}
             style={{
+              flex: 1, minWidth: 0,
               border: activeTab === 's' ? '2px solid #c2185b' : '2px solid transparent',
-              borderRadius: '24px', padding: '16px', 
+              borderRadius: '20px', padding: '12px', 
               background: '#fef0f5',
               transition: 'all 0.2s', opacity: activeTab === 's' ? 1 : 0.6,
               boxShadow: activeTab === 's' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
               display: 'flex', flexDirection: 'column', gap: '8px'
             }}
           >
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
-              <h3 style={{display:'flex', alignItems:'center', gap:'6px', margin: 0, fontSize: '1.2rem', color: '#c2185b'}}>
-                <Baby size={20}/> 육아 용품
+            <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '8px', textAlign: 'center'}}>
+              <h3 style={{display:'flex', alignItems:'center', gap:'6px', margin: '0 0 4px 0', fontSize: '1rem', color: '#c2185b'}}>
+                <Baby size={16}/> 육아용품
               </h3>
-              <span style={{fontSize: '0.85rem', color: '#555', fontWeight: 'bold'}}>{supplies.filter(i=>!i.checked).length}개 남음</span>
+              <span style={{fontSize: '0.75rem', color: '#555', fontWeight: 'bold'}}>{supplies.filter(i=>!i.checked).length}개 남음</span>
             </div>
             {supplies.length === 0 && (
               <div className="empty-state" style={{margin: '20px 0'}}>
-                <span className="empty-icon">🍼</span>
-                <p>항목이 없어요</p>
+                <span className="empty-icon" style={{fontSize: '1.5rem'}}>🍼</span>
+                <p style={{fontSize: '0.8rem'}}>비었어요</p>
               </div>
             )}
             {supplies.map(item => (
-              <div key={item.id} className={`shop-item-mobile ${item.checked ? 'done' : ''}`} onClick={(e) => { e.stopPropagation(); toggle(item.id, 's'); }}>
-                <div className={`chk ${item.checked ? 'chk-on' : ''}`}/>
-                <span className="item-text">{item.text}</span>
+              <div key={item.id} className={`shop-item-mobile ${item.checked ? 'done' : ''}`} onClick={(e) => { e.stopPropagation(); toggle(item.id, 's'); }} style={{padding:'8px 6px', gap:'6px', display:'flex', alignItems:'center'}}>
+                <div style={{flexShrink:0}} className={`chk ${item.checked ? 'chk-on' : ''}`}/>
+                <span className="item-text" style={{fontSize:'0.85rem', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.text}</span>
                 {item.isCoupang ? (
-                  <span className="rocket-badge" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 's'); }}>🚀</span>
+                  <span className="rocket-badge" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 's'); }} style={{padding:'2px', fontSize:'0.8rem'}}>🚀</span>
                 ) : (
-                  <button className="rocket-toggle-off" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 's'); }}>🚀</button>
+                  <button className="rocket-toggle-off" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 's'); }} style={{padding:'2px', fontSize:'0.8rem'}}>🚀</button>
                 )}
               </div>
             ))}
