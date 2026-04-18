@@ -3,98 +3,75 @@ import React, { createContext, useState, useContext } from 'react';
 const ColorContext = createContext();
 
 export const ColorProvider = ({ children }) => {
-  // Default elegant pastel colors
-  const [caretakerColors, setCaretakerColors] = useState({
-    아빠: '#b5c0d0', // pastel blue-grey
-    엄마: '#ffcfdf', // pastel pink
-    할머니: '#d5ebd1', // pastel green
+  const [boardColors, setBoardColors] = useState({
+    아빠: '#b5c0d0', 엄마: '#ffcfdf', 할머니: '#d5ebd1'
+  });
+  const [boardEmojis, setBoardEmojis] = useState({
+    아빠: '⭐', 엄마: '🌸', 할머니: '🍀'
   });
 
-  const [caretakerEmojis, setCaretakerEmojis] = useState({
-    아빠: '⭐',
-    엄마: '🌸',
-    할머니: '🍀',
+  const [schedColors, setSchedColors] = useState({
+    아빠: '#b5c0d0', 엄마: '#ffcfdf', 할머니: '#d5ebd1'
+  });
+  const [schedEmojis, setSchedEmojis] = useState({
+    아빠: '⭐', 엄마: '🌸', 할머니: '🍀'
   });
 
-  const updateColor = (name, color) => {
-    setCaretakerColors(prev => ({
-      ...prev,
-      [name]: color
-    }));
-  };
+  const getContextValue = (type) => {
+    const isSched = type === 'schedule';
+    const setColors = isSched ? setSchedColors : setBoardColors;
+    const setEmojis = isSched ? setSchedEmojis : setBoardEmojis;
+    const colors = isSched ? schedColors : boardColors;
+    const emojis = isSched ? schedEmojis : boardEmojis;
 
-  const updateEmoji = (name, emoji) => {
-    setCaretakerEmojis(prev => ({
-      ...prev,
-      [name]: emoji
-    }));
-  };
-
-  const addCaretaker = (name) => {
-    if (!name.trim()) return;
-    setCaretakerColors(prev => ({
-      ...prev,
-      [name]: '#f0f0f0'
-    }));
-    setCaretakerEmojis(prev => ({
-      ...prev,
-      [name]: '💬'
-    }));
-  };
-
-  const removeCaretaker = (name) => {
-    setCaretakerColors(prev => {
-      const next = {...prev};
-      delete next[name];
-      return next;
-    });
-    setCaretakerEmojis(prev => {
-      const next = {...prev};
-      delete next[name];
-      return next;
-    });
-  };
-
-  const renameCaretaker = (oldName, newName) => {
-    if (!newName.trim() || oldName === newName) return;
-    setCaretakerColors(prev => {
-      const next = {...prev};
-      next[newName] = next[oldName];
-      delete next[oldName];
-      return next;
-    });
-    setCaretakerEmojis(prev => {
-      const next = {...prev};
-      next[newName] = next[oldName];
-      delete next[oldName];
-      return next;
-    });
-  };
-
-  const reorderCaretakers = (sourceIndex, destIndex) => {
-    setCaretakerColors(prev => {
-      const keys = Object.keys(prev);
-      const [moved] = keys.splice(sourceIndex, 1);
-      keys.splice(destIndex, 0, moved);
-      const next = {};
-      keys.forEach(k => next[k] = prev[k]);
-      return next;
-    });
-    setCaretakerEmojis(prev => {
-      const keys = Object.keys(prev);
-      const [moved] = keys.splice(sourceIndex, 1);
-      keys.splice(destIndex, 0, moved);
-      const next = {};
-      keys.forEach(k => next[k] = prev[k]);
-      return next;
-    });
+    return {
+      caretakerColors: colors,
+      caretakerEmojis: emojis,
+      updateColor: (name, color) => setColors(prev => ({...prev, [name]: color})),
+      updateEmoji: (name, emoji) => setEmojis(prev => ({...prev, [name]: emoji})),
+      addCaretaker: (name) => {
+        if (!name.trim()) return;
+        setColors(prev => ({...prev, [name]: '#f0f0f0'}));
+        setEmojis(prev => ({...prev, [name]: '💬'}));
+      },
+      removeCaretaker: (name) => {
+        setColors(prev => { const n = {...prev}; delete n[name]; return n; });
+        setEmojis(prev => { const n = {...prev}; delete n[name]; return n; });
+      },
+      renameCaretaker: (oldName, newName) => {
+        if (!newName.trim() || oldName === newName) return;
+        setColors(prev => {
+          const n = {...prev}; n[newName] = n[oldName]; delete n[oldName]; return n;
+        });
+        setEmojis(prev => {
+          const n = {...prev}; n[newName] = n[oldName]; delete n[oldName]; return n;
+        });
+      },
+      reorderCaretakers: (sourceIndex, destIndex) => {
+        setColors(prev => {
+          const keys = Object.keys(prev);
+          const [moved] = keys.splice(sourceIndex, 1);
+          keys.splice(destIndex, 0, moved);
+          const next = {}; keys.forEach(k => next[k] = prev[k]); return next;
+        });
+        setEmojis(prev => {
+          const keys = Object.keys(prev);
+          const [moved] = keys.splice(sourceIndex, 1);
+          keys.splice(destIndex, 0, moved);
+          const next = {}; keys.forEach(k => next[k] = prev[k]); return next;
+        });
+      }
+    };
   };
 
   return (
-    <ColorContext.Provider value={{ caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker, removeCaretaker, renameCaretaker, reorderCaretakers }}>
+    <ColorContext.Provider value={getContextValue}>
       {children}
     </ColorContext.Provider>
   );
 };
 
-export const useColors = () => useContext(ColorContext);
+export const useColors = (type = 'board') => {
+  const factory = useContext(ColorContext);
+  return factory(type);
+};

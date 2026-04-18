@@ -96,8 +96,8 @@ const EmojiPickerModal = ({ currentEmoji, onSelect, onClose }) => {
   );
 };
 
-export const MemberSettings = ({ onClose }) => {
-  const { caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker, removeCaretaker, renameCaretaker, reorderCaretakers } = useColors();
+export const MemberSettings = ({ onClose, type = 'board' }) => {
+  const { caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker, removeCaretaker, renameCaretaker, reorderCaretakers } = useColors(type);
   const authors = Object.keys(caretakerEmojis);
   const [newName, setNewName] = useState('');
   const [pickingFor, setPickingFor] = useState(null);
@@ -141,6 +141,14 @@ export const MemberSettings = ({ onClose }) => {
   const handleDragEnd = (e) => {
     setDraggedIdx(null);
     if (e.target) e.target.style.opacity = '1';
+  };
+
+  const handleClose = () => {
+    if (newName.trim()) {
+      addCaretaker(newName.trim());
+      setNewName('');
+    }
+    onClose();
   };
 
   return (
@@ -201,11 +209,10 @@ export const MemberSettings = ({ onClose }) => {
             ))}
             <form className="add-p-form" onSubmit={handleAddPerson} style={{display: 'flex', gap: '8px', marginTop: '20px'}}>
               <input type="text" placeholder="새 이름..." value={newName} onChange={e => setNewName(e.target.value)} style={{flex: 1, padding: '12px 14px', borderRadius: '12px', border: '1px solid #ddd'}}/>
-              <button type="submit" style={{padding: '12px 16px', background: 'var(--text-main)', color: 'white', borderRadius: '12px', flexShrink: 0}}><Plus size={16}/></button>
             </form>
           </section>
         </div>
-        <button className="close-btn" onClick={onClose} style={{width: 'calc(100% - 40px)', margin: '0 20px 20px', padding: '16px', background: 'var(--text-main)', color: 'white', borderRadius: '14px', fontWeight: '800'}}>완료</button>
+        <button className="close-btn" onClick={handleClose} style={{width: 'calc(100% - 40px)', margin: '0 20px 20px', padding: '16px', background: 'var(--text-main)', color: 'white', borderRadius: '14px', fontWeight: '800'}}>완료</button>
       </div>
 
       {pickingFor && (

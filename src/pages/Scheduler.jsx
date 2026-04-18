@@ -74,7 +74,7 @@ function generateMonth(year, month) {
 const CALENDAR_MONTHS = [generateMonth(2026, 3), generateMonth(2026, 4), generateMonth(2026, 5), generateMonth(2026, 6)];
 
 const Scheduler = () => {
-  const { caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker } = useColors();
+  const { caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker } = useColors('schedule');
   const [weeks, setWeeks] = useState(INITIAL_WEEKS);
   const [weekIndex, setWeekIndex] = useState(1);
   const [showSettings, setShowSettings] = useState(false);
@@ -256,22 +256,30 @@ const Scheduler = () => {
 
       {editFamily && (
         <div className="modal-overlay" onClick={saveFamily}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h4>일정 수정</h4>
-            <input
-              type="text"
-              value={editFamily.text}
-              onChange={e => setEditFamily({ ...editFamily, text: e.target.value })}
-              placeholder="예: 집콕 휴식, 마트 구경 등"
-              autoFocus
-              onKeyDown={e => { if (e.key === 'Enter') saveFamily(); }}
-              style={{width: '100%', padding: '10px', marginTop: '10px', borderRadius: '8px', border: '1px solid #ddd'}}
-            />
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{padding: '24px', maxWidth: '340px', margin: 'auto', borderRadius: '24px'}}>
+            <div className="sheet-title"><span>일정 수정</span><button onClick={() => setEditFamily(null)} style={{background: 'none', border: 'none', cursor: 'pointer'}}><X size={20}/></button></div>
+            <div className="settings-body" style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
+              <input
+                type="text"
+                value={editFamily.text}
+                onChange={e => setEditFamily({ ...editFamily, text: e.target.value })}
+                placeholder="예: 집콕 휴식, 마트 구경 등"
+                autoFocus
+                onKeyDown={e => { if (e.key === 'Enter') saveFamily(); }}
+                style={{width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #ddd', fontSize: '1.05rem', outline: 'none'}}
+              />
+              <button 
+                onClick={saveFamily}
+                style={{background: 'var(--text-main)', color: 'white', padding: '14px', borderRadius: '12px', fontWeight: '800', fontSize: '1rem', border: 'none', width: '100%', cursor: 'pointer'}}
+              >
+                완료
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {showSettings && <MemberSettings onClose={() => setShowSettings(false)} />}
+      {showSettings && <MemberSettings onClose={() => setShowSettings(false)} type="schedule" />}
 
       {showCalendar && (
         <div className="modal-overlay" onClick={() => setShowCalendar(false)}>

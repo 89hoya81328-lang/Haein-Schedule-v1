@@ -136,50 +136,82 @@ const ShoppingList = () => {
       {/* ===== MOBILE LAYOUT ===== */}
       <div className="shop-mobile">
         {/* Tab Switcher */}
-        <div className="shop-tabs">
-          <button 
-            className={`shop-tab ${activeTab === 'g' ? 'tab-active' : ''}`} 
+        <div className="shop-mobile-list" style={{gap: '16px', display: 'flex', flexDirection: 'column', padding: '16px'}}>
+          
+          {/* Groceries Area */}
+          <div 
             onClick={() => setActiveTab('g')}
+            style={{
+              border: activeTab === 'g' ? '2px solid #2e7d32' : '2px solid transparent',
+              borderRadius: '24px', padding: '16px', 
+              background: '#f0f9f1',
+              transition: 'all 0.2s', opacity: activeTab === 'g' ? 1 : 0.6,
+              boxShadow: activeTab === 'g' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
+              display: 'flex', flexDirection: 'column', gap: '8px'
+            }}
           >
-            <Apple size={16}/> 식자재
-            <span className="tab-count">{groceries.filter(i=>!i.checked).length}</span>
-          </button>
-          <button 
-            className={`shop-tab ${activeTab === 's' ? 'tab-active' : ''}`}
-            onClick={() => setActiveTab('s')}
-          >
-            <Baby size={16}/> 육아 용품
-            <span className="tab-count">{supplies.filter(i=>!i.checked).length}</span>
-          </button>
-        </div>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
+              <h3 style={{display:'flex', alignItems:'center', gap:'6px', margin: 0, fontSize: '1.2rem', color: '#2e7d32'}}>
+                <Apple size={20}/> 식자재
+              </h3>
+              <span style={{fontSize: '0.85rem', color: '#555', fontWeight: 'bold'}}>{groceries.filter(i=>!i.checked).length}개 남음</span>
+            </div>
+            {groceries.length === 0 && (
+              <div className="empty-state" style={{margin: '20px 0'}}>
+                <span className="empty-icon">🥬</span>
+                <p>항목이 없어요</p>
+              </div>
+            )}
+            {groceries.map(item => (
+              <div key={item.id} className={`shop-item-mobile ${item.checked ? 'done' : ''}`} onClick={(e) => { e.stopPropagation(); toggle(item.id, 'g'); }}>
+                <div className={`chk ${item.checked ? 'chk-on' : ''}`}/>
+                <span className="item-text">{item.text}</span>
+                {item.isCoupang ? (
+                  <span className="rocket-badge" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 'g'); }}>🚀</span>
+                ) : (
+                  <button className="rocket-toggle-off" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 'g'); }}>🚀</button>
+                )}
+              </div>
+            ))}
+          </div>
 
-        {/* Item List */}
-        <div className="shop-mobile-list">
-          {currentItems.length === 0 && (
-            <div className="empty-state">
-              <span className="empty-icon">{activeTab === 'g' ? '🥬' : '🍼'}</span>
-              <p>항목이 없어요</p>
+          {/* Supplies Area */}
+          <div 
+            onClick={() => setActiveTab('s')}
+            style={{
+              border: activeTab === 's' ? '2px solid #c2185b' : '2px solid transparent',
+              borderRadius: '24px', padding: '16px', 
+              background: '#fef0f5',
+              transition: 'all 0.2s', opacity: activeTab === 's' ? 1 : 0.6,
+              boxShadow: activeTab === 's' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
+              display: 'flex', flexDirection: 'column', gap: '8px'
+            }}
+          >
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
+              <h3 style={{display:'flex', alignItems:'center', gap:'6px', margin: 0, fontSize: '1.2rem', color: '#c2185b'}}>
+                <Baby size={20}/> 육아 용품
+              </h3>
+              <span style={{fontSize: '0.85rem', color: '#555', fontWeight: 'bold'}}>{supplies.filter(i=>!i.checked).length}개 남음</span>
             </div>
-          )}
-          {currentItems.map(item => (
-            <div key={item.id} className={`shop-item-mobile ${item.checked ? 'done' : ''}`} onClick={() => toggle(item.id, activeTab)}>
-              <div className={`chk ${item.checked ? 'chk-on' : ''}`}/>
-              <span className="item-text">{item.text}</span>
-              {item.isCoupang && (
-                <span className="rocket-badge" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, activeTab); }}>
-                  🚀
-                </span>
-              )}
-              {!item.isCoupang && (
-                <button 
-                  className="rocket-toggle-off"
-                  onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, activeTab); }}
-                >
-                  🚀
-                </button>
-              )}
-            </div>
-          ))}
+            {supplies.length === 0 && (
+              <div className="empty-state" style={{margin: '20px 0'}}>
+                <span className="empty-icon">🍼</span>
+                <p>항목이 없어요</p>
+              </div>
+            )}
+            {supplies.map(item => (
+              <div key={item.id} className={`shop-item-mobile ${item.checked ? 'done' : ''}`} onClick={(e) => { e.stopPropagation(); toggle(item.id, 's'); }}>
+                <div className={`chk ${item.checked ? 'chk-on' : ''}`}/>
+                <span className="item-text">{item.text}</span>
+                {item.isCoupang ? (
+                  <span className="rocket-badge" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 's'); }}>🚀</span>
+                ) : (
+                  <button className="rocket-toggle-off" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 's'); }}>🚀</button>
+                )}
+              </div>
+            ))}
+          </div>
+          
         </div>
 
         {/* Bottom action bar */}
