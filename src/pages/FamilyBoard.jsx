@@ -56,7 +56,11 @@ const FamilyBoard = () => {
   const [editingMsgId, setEditingMsgId] = useState(null);
   const [editingMsgText, setEditingMsgText] = useState('');
   
-  const [editingMedia, setEditingMedia] = useState(null); // { id, caption, cssFilter }
+  const [viewingMedia, setViewingMedia] = useState(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState([]);
+  const [editingCaptionId, setEditingCaptionId] = useState(null);
+  const [captionText, setCaptionText] = useState('');
 
   const fileInputRef = React.useRef(null);
 
@@ -90,10 +94,27 @@ const FamilyBoard = () => {
     setMediaIndex(i => Math.min(i, updated.length - 1));
   };
 
-  const saveMediaEdit = () => {
-    if (!editingMedia) return;
-    setMedia(prev => prev.map(m => m.id === editingMedia.id ? { ...m, caption: editingMedia.caption, cssFilter: editingMedia.cssFilter } : m));
-    setEditingMedia(null);
+  const startEditCaption = (m) => {
+    setEditingCaptionId(m.id);
+    setCaptionText(m.caption);
+  };
+
+  const saveCaption = (id) => {
+    if (!captionText.trim()) { setEditingCaptionId(null); return; }
+    setMedia(prev => prev.map(m => m.id === id ? { ...m, caption: captionText.trim() } : m));
+    setEditingCaptionId(null);
+  };
+
+  const deleteSelectedMedia = () => {
+    const updated = media.filter(m => !selectedMedia.includes(m.id));
+    if (updated.length === 0) {
+      alert('더 이상 삭제할 수 없습니다.');
+      return; 
+    }
+    setMedia(updated);
+    setSelectedMedia([]);
+    setIsSelecting(false);
+    setMediaIndex(0);
   };
 
   const handleFileUpload = (e) => {
@@ -142,15 +163,22 @@ const FamilyBoard = () => {
         <div className="photo-carousel">
           <button className="car-btn" onClick={() => setMediaIndex(i => Math.max(0, i-1))} disabled={mediaIndex===0}><ChevronLeft size={18}/></button>
           <div className="car-body">
-            <div className="car-media-wrap" onClick={() => setEditingMedia({ ...currentMedia })} style={{cursor:'pointer', position: 'relative'}}>
+            <div className="car-media-wrap" onClick={() => setViewingMedia(currentMedia)} style={{cursor:'pointer', position: 'relative'}}>
               <MediaItem item={currentMedia} className="car-img" />
               {currentMedia.type === 'video' && <span className="video-badge"><Play size={12}/> 동영상</span>}
-              <div style={{position: 'absolute', top: '10px', right: '10px', background: 'rgba(255,255,255,0.85)', padding: '6px 10px', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '800', backdropFilter: 'blur(4px)', color: 'var(--text-main)'}}>
-                <Palette size={12}/> 꾸미기
-              </div>
             </div>
-            <div className="car-meta">
-              <span className="car-cap">{currentMedia.caption}</span>
+            <div className="car-meta" style={{display:'flex', flexDirection:'column', gap:'6px'}}>
+              {editingCaptionId === currentMedia.id ? (
+                <div style={{display:'flex', gap:'8px', justifyContent:'center'}}>
+                  <input type="text" value={captionText} onChange={e=>setCaptionText(e.target.value)} style={{flex:1, padding:'6px 10px', borderRadius:'6px', border:'1px solid #ddd', fontSize:'0.9rem'}} autoFocus/>
+                  <button onClick={() => saveCaption(currentMedia.id)} style={{background:'var(--text-main)', color:'white', border:'none', borderRadius:'6px', padding:'0 12px', fontWeight:'700'}}><Check size={14}/></button>
+                </div>
+              ) : (
+                <span className="car-cap">
+                  {currentMedia.caption}
+                  <button onClick={() => startEditCaption(currentMedia)} style={{background:'none', border:'none', color:'#999', cursor:'pointer', padding:'0 6px'}}><Pencil size={12}/></button>
+                </span>
+              )}
               <span className="car-date">{currentMedia.date}</span>
             </div>
             
@@ -222,68 +250,18 @@ const FamilyBoard = () => {
         </form>
       </section>
 
-      {/* Media Edit/Decorate Modal */}
-      {editingMedia && (
-        <div className="modal-overlay" onClick={() => setEditingMedia(null)} style={{zIndex: 9000}}>
-          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{maxWidth: '480px', margin:'auto', padding:'24px', borderRadius:'24px', maxHeight:'90vh', overflowY:'auto'}}>
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #eee', paddingBottom:'16px', marginBottom:'20px'}}>
-              <h4 style={{margin:0, fontSize:'1.2rem', fontWeight:'900', display:'flex', alignItems:'center', gap:'8px'}}><Palette size={20}/> 미디어 꾸미기</h4>
-              <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
-                <button onClick={() => { deleteMedia(editingMedia.id); setEditingMedia(null); }} style={{background:'#fff0f0', color:'#ff3b3b', border:'1px solid #ffebeb', borderRadius:'14px', padding:'8px 12px', fontWeight:'900', cursor:'pointer', display:'flex', alignItems:'center', gap:'4px'}}><Trash2 size={16}/> 삭제</button>
-                <button className="icon-btn" onClick={() => setEditingMedia(null)} style={{background:'#f0f0f0', border:'none', cursor:'pointer', borderRadius:'50%', width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center'}}><X size={18}/></button>
-              </div>
-            </div>
-            
-            <div style={{display:'flex', flexDirection:'column', gap:'20px'}}>
-              <div style={{textAlign:'center', background:'#f8f9fa', borderRadius:'16px', padding:'12px', maxHeight:'300px', display:'flex', justifyContent:'center', position:'relative'}}>
-                {editingMedia.type === 'video' ? (
-                  <video src={editingMedia.url} style={{filter: editingMedia.cssFilter || 'none', maxHeight:'260px', borderRadius:'12px'}} autoPlay muted loop/>
-                ) : (
-                  <img src={editingMedia.url} style={{filter: editingMedia.cssFilter || 'none', maxHeight:'260px', borderRadius:'12px', objectFit:'contain'}}/>
-                )}
-              </div>
-              
-              <div>
-                <label style={{fontSize:'0.9rem', fontWeight:'900', color:'#444', marginBottom:'10px', display:'block'}}>사진 필터 (꾸미기)</label>
-                <div style={{display:'flex', gap:'8px', overflowX:'auto', paddingBottom:'10px', scrollbarWidth:'none'}}>
-                  {[
-                    {l:'원본',f:'none'}, {l:'화사하게',f:'brightness(1.15) contrast(1.1) saturate(1.2)'}, {l:'흑백',f:'grayscale(100%)'}, {l:'세피아',f:'sepia(80%)'}, {l:'따뜻하게',f:'sepia(30%) saturate(140%)'},
-                    {l:'블러',f:'blur(2px)'}, {l:'밝게',f:'brightness(1.3)'}, {l:'대비',f:'contrast(1.5)'}, {l:'차가운',f:'hue-rotate(180deg) saturate(120%)'}, {l:'인버트',f:'invert(100%)'}
-                  ].map(opt => (
-                    <button 
-                      key={opt.l} 
-                      onClick={() => setEditingMedia({...editingMedia, cssFilter: opt.f})}
-                      style={{
-                        padding: '8px 16px', borderRadius: '20px', border: editingMedia.cssFilter === opt.f ? 'none' : '1px solid #ddd', whiteSpace:'nowrap',
-                        background: editingMedia.cssFilter === opt.f ? 'var(--text-main)' : 'white',
-                        color: editingMedia.cssFilter === opt.f ? 'white' : '#555', fontWeight: '800', cursor:'pointer', transition:'all 0.2s'
-                      }}
-                    >
-                      {opt.l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label style={{fontSize:'0.9rem', fontWeight:'900', color:'#444', marginBottom:'10px', display:'block'}}>설명글(Caption) 수정</label>
-                <input 
-                  type="text" 
-                  value={editingMedia.caption} 
-                  onChange={e => setEditingMedia({...editingMedia, caption: e.target.value})}
-                  style={{width:'100%', padding:'14px', borderRadius:'12px', border:'1px solid #ddd', fontSize:'1rem', outline:'none'}}
-                />
-              </div>
-
-              <div style={{display:'flex', gap:'10px', marginTop:'10px'}}>
-                <button 
-                  onClick={saveMediaEdit}
-                  style={{flex:1, padding:'16px', borderRadius:'16px', background:'var(--text-main)', color:'white', fontWeight:'900', border:'none', fontSize:'1.05rem', cursor:'pointer'}}
-                >
-                  변경사항 저장하기
-                </button>
-              </div>
-            </div>
+      {/* Fullscreen View Modal */}
+      {viewingMedia && (
+        <div className="modal-overlay" onClick={() => setViewingMedia(null)} style={{zIndex: 9000, background: 'rgba(0,0,0,0.85)'}}>
+          <button onClick={() => setViewingMedia(null)} style={{position: 'absolute', top: '20px', right: '20px', background:'rgba(255,255,255,0.2)', border:'none', color:'white', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', width:'40px', height:'40px', borderRadius:'50%'}}>
+            <X size={24}/>
+          </button>
+          <div onClick={e => e.stopPropagation()} style={{display:'flex', width:'100%', height:'100%', alignItems:'center', justifyContent:'center', padding:'20px'}}>
+            {viewingMedia.type === 'video' ? (
+              <video src={viewingMedia.url} style={{maxWidth:'100%', maxHeight:'90vh', borderRadius:'12px', boxShadow:'0 8px 30px rgba(0,0,0,0.3)'}} controls autoPlay playsInline/>
+            ) : (
+              <img src={viewingMedia.url} style={{maxWidth:'100%', maxHeight:'90vh', objectFit:'contain', borderRadius:'12px', boxShadow:'0 8px 30px rgba(0,0,0,0.3)'}}/>
+            )}
           </div>
         </div>
       )}
@@ -294,11 +272,23 @@ const FamilyBoard = () => {
           <div className="gal-modal" onClick={e => e.stopPropagation()}>
             <div className="gal-head">
               <span>📷 전체 미디어 <span style={{fontSize: '0.8rem', color: '#666'}}>({totalMediaMB} MB)</span></span>
-              <button onClick={() => setShowGallery(false)}><X size={22}/></button>
+              <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
+                {selectedMedia.length > 0 && <button onClick={deleteSelectedMedia} style={{background:'#fff0f0', color:'#ff3b3b', border:'1px solid #ffebeb', borderRadius:'14px', padding:'6px 10px', fontSize:'0.8rem', fontWeight:'900', cursor:'pointer'}}><Trash2 size={12}/> 삭제 ({selectedMedia.length})</button>}
+                <button onClick={() => { setIsSelecting(!isSelecting); setSelectedMedia([]); }} style={{background: isSelecting ? 'var(--text-main)' : '#f0f0f0', color: isSelecting ? 'white' : '#333', border:'none', borderRadius:'14px', padding:'6px 12px', fontSize:'0.85rem', fontWeight:'900', cursor:'pointer'}}>{isSelecting ? '취소' : '선택'}</button>
+                <button onClick={() => { setShowGallery(false); setIsSelecting(false); setSelectedMedia([]); }} style={{background:'none', border:'none'}}><X size={22}/></button>
+              </div>
             </div>
             <div className="gal-grid">
-              {media.map((m,i) => (
-                <div key={m.id} className="gal-thumb" onClick={() => {setMediaIndex(i);setShowGallery(false);}}>
+              {media.map((m,i) => {
+                const isSelected = selectedMedia.includes(m.id);
+                return (
+                <div key={m.id} className="gal-thumb" onClick={() => {
+                  if (isSelecting) {
+                    setSelectedMedia(prev => isSelected ? prev.filter(id => id !== m.id) : [...prev, m.id]);
+                  } else {
+                    setViewingMedia(m); 
+                  }
+                }} style={{opacity: isSelecting && !isSelected ? 0.6 : 1, transition:'all 0.2s', position:'relative'}}>
                   {m.type === 'video' ? (
                     <>
                       <img src={m.poster || m.url} alt={m.caption}/>
@@ -308,8 +298,13 @@ const FamilyBoard = () => {
                     <img src={m.url} alt={m.caption}/>
                   )}
                   <div className="gal-info"><span>{m.caption}</span><span className="gal-sm-date">{m.date}</span></div>
+                  {isSelecting && (
+                    <div style={{position:'absolute', top:'6px', right:'6px', background: isSelected ? 'var(--text-main)' : 'rgba(255,255,255,0.8)', border: isSelected ? 'none' : '2px solid #ddd', width:'24px', height:'24px', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', zIndex: 2}}>
+                      {isSelected && <Check size={16} color="white"/>}
+                    </div>
+                  )}
                 </div>
-              ))}
+              )})}
               <div className="gal-thumb gal-add" onClick={() => fileInputRef.current?.click()} style={{cursor:'pointer'}}>
                 <span>+ 사진 업로드</span>
               </div>
