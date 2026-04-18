@@ -157,6 +157,8 @@ const HaeinReadme = () => {
   const [sections, setSections] = useState(INITIAL_SECTIONS);
   const [showAddSection, setShowAddSection] = useState(false);
   const [newSectionTitle, setNewSectionTitle] = useState('');
+  const [mainTitle, setMainTitle] = useState('해인이 쑥쑥 가이드 🍼');
+  const [editingMainTitle, setEditingMainTitle] = useState(false);
 
   const handleSave = (id, title, items) => {
     setSections(secs => secs.map(s =>
@@ -185,8 +187,24 @@ const HaeinReadme = () => {
   return (
     <div className="readme-container page-transition">
       <div className="readme-header">
-        <div>
-          <h2 className="readme-main-title">해인이 쑥쑥 가이드 🍼</h2>
+        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+          {editingMainTitle ? (
+            <div style={{display:'flex', alignItems:'center', gap:'8px', width: '100%'}}>
+              <input 
+                type="text" 
+                value={mainTitle} 
+                onChange={e => setMainTitle(e.target.value)}
+                style={{fontSize:'1.5rem', fontWeight:'800', border:'1px solid #ddd', borderRadius:'8px', padding:'4px 8px', flex:1}}
+                autoFocus
+              />
+              <button className="save-icon-btn" onClick={() => setEditingMainTitle(false)}><Check size={18} /></button>
+            </div>
+          ) : (
+            <>
+              <h2 className="readme-main-title" style={{margin:0}}>{mainTitle}</h2>
+              <button className="edit-icon-btn" onClick={() => setEditingMainTitle(true)}><Pencil size={18} color="#999" /></button>
+            </>
+          )}
         </div>
       </div>
 

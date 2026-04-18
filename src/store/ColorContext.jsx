@@ -10,10 +10,23 @@ export const ColorProvider = ({ children }) => {
     할머니: '#d5ebd1', // pastel green
   });
 
+  const [caretakerEmojis, setCaretakerEmojis] = useState({
+    아빠: '⭐',
+    엄마: '🌸',
+    할머니: '🍀',
+  });
+
   const updateColor = (name, color) => {
     setCaretakerColors(prev => ({
       ...prev,
       [name]: color
+    }));
+  };
+
+  const updateEmoji = (name, emoji) => {
+    setCaretakerEmojis(prev => ({
+      ...prev,
+      [name]: emoji
     }));
   };
 
@@ -23,10 +36,14 @@ export const ColorProvider = ({ children }) => {
       ...prev,
       [name]: '#f0f0f0'
     }));
+    setCaretakerEmojis(prev => ({
+      ...prev,
+      [name]: '💬'
+    }));
   };
 
   return (
-    <ColorContext.Provider value={{ caretakerColors, updateColor, addCaretaker }}>
+    <ColorContext.Provider value={{ caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker }}>
       {children}
     </ColorContext.Provider>
   );

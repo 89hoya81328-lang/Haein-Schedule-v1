@@ -1,61 +1,62 @@
 import React, { useState } from 'react';
 import { useColors } from '../store/ColorContext';
 import { Settings2, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { MemberSettings } from '../components/MemberSettings';
 import './Scheduler.css';
 
 const INITIAL_WEEKS = [
   {
     weekId: 'w0', label: '지난 주', monthLabel: '4월', month: 4,
     days: [
-      { date: 8, day: '월', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: [] },
-      { date: 9, day: '화', isWeekend: false, holiday: '', drop: '엄마', pick: '할머니', notes: ['치과 검진일'] },
-      { date: 10, day: '수', isWeekend: false, holiday: '', drop: '할머니', pick: '아빠', notes: [] },
-      { date: 11, day: '목', isWeekend: false, holiday: '', drop: '엄마', pick: '엄마', notes: [] },
-      { date: 12, day: '금', isWeekend: false, holiday: '', drop: '아빠', pick: '할머니', notes: [] },
-      { date: 13, day: '토', isWeekend: true, holiday: '', family: '집콕 휴식', notes: [] },
-      { date: 14, day: '일', isWeekend: true, holiday: '', family: '마트 장보기', notes: [] },
+      { date: 6, day: '월', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: [] },
+      { date: 7, day: '화', isWeekend: false, holiday: '', drop: '엄마', pick: '할머니', notes: ['치과 검진일'] },
+      { date: 8, day: '수', isWeekend: false, holiday: '', drop: '할머니', pick: '아빠', notes: [] },
+      { date: 9, day: '목', isWeekend: false, holiday: '', drop: '엄마', pick: '엄마', notes: [] },
+      { date: 10, day: '금', isWeekend: false, holiday: '', drop: '아빠', pick: '할머니', notes: [] },
+      { date: 11, day: '토', isWeekend: true, holiday: '', family: '집콕 휴식', notes: [] },
+      { date: 12, day: '일', isWeekend: true, holiday: '', family: '마트 장보기', notes: [] },
     ]
   },
   {
     weekId: 'w1', label: '이번 주', monthLabel: '4월', month: 4,
     days: [
-      { date: 15, day: '월', isWeekend: false, holiday: '', drop: '엄마', pick: '아빠', notes: ['준비물 챙기기', '우산 준비'] },
-      { date: 16, day: '화', isWeekend: false, holiday: '', drop: '아빠', pick: '할머니', notes: ['체육복 입는 날'] },
-      { date: 17, day: '수', isWeekend: false, holiday: '', drop: '엄마', pick: '엄마', notes: ['특별 활동 (요리)'] },
-      { date: 18, day: '목', isWeekend: false, holiday: '', drop: '할머니', pick: '아빠', notes: ['병원 예약 하원'] },
-      { date: 19, day: '금', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: ['이불 가져오기'] },
-      { date: 20, day: '토', isWeekend: true, holiday: '', family: '할아버지 댁 방문', notes: ['오전 10시 출발'] },
-      { date: 21, day: '일', isWeekend: true, holiday: '', family: '동물원 나들이', notes: ['유모차, 간식 챙기기'] },
+      { date: 13, day: '월', isWeekend: false, holiday: '', drop: '엄마', pick: '아빠', notes: ['준비물 챙기기', '우산 준비'] },
+      { date: 14, day: '화', isWeekend: false, holiday: '', drop: '아빠', pick: '할머니', notes: ['체육복 입는 날'] },
+      { date: 15, day: '수', isWeekend: false, holiday: '', drop: '엄마', pick: '엄마', notes: ['특별 활동 (요리)'] },
+      { date: 16, day: '목', isWeekend: false, holiday: '', drop: '할머니', pick: '아빠', notes: ['병원 예약 하원'] },
+      { date: 17, day: '금', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: ['이불 가져오기'] },
+      { date: 18, day: '토', isWeekend: true, holiday: '', family: '할아버지 댁 방문', notes: ['오전 10시 출발'] },
+      { date: 19, day: '일', isWeekend: true, holiday: '', family: '동물원 나들이', notes: ['유모차, 간식 챙기기'] },
     ]
   },
   {
     weekId: 'w2', label: '다음 주', monthLabel: '4월', month: 4,
     days: [
-      { date: 22, day: '월', isWeekend: false, holiday: '', drop: '엄마', pick: '아빠', notes: [] },
-      { date: 23, day: '화', isWeekend: false, holiday: '', drop: '할머니', pick: '할머니', notes: ['소풍 (도시락)'] },
-      { date: 24, day: '수', isWeekend: false, holiday: '크리스마스이브', drop: '', pick: '', notes: ['홈파티 준비'] },
-      { date: 25, day: '목', isWeekend: false, holiday: '크리스마스', drop: '', pick: '', notes: ['산타 선물'] },
-      { date: 26, day: '금', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: [] },
-      { date: 27, day: '토', isWeekend: true, holiday: '', family: '집콕 휴식', notes: [] },
-      { date: 28, day: '일', isWeekend: true, holiday: '', family: '마트 장보기', notes: [] },
+      { date: 20, day: '월', isWeekend: false, holiday: '', drop: '엄마', pick: '아빠', notes: [] },
+      { date: 21, day: '화', isWeekend: false, holiday: '', drop: '할머니', pick: '할머니', notes: ['소풍 (도시락)'] },
+      { date: 22, day: '수', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: [] },
+      { date: 23, day: '목', isWeekend: false, holiday: '', drop: '엄마', pick: '할머니', notes: [] },
+      { date: 24, day: '금', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: [] },
+      { date: 25, day: '토', isWeekend: true, holiday: '', family: '집콕 휴식', notes: [] },
+      { date: 26, day: '일', isWeekend: true, holiday: '', family: '마트 장보기', notes: [] },
     ]
   },
   {
-    weekId: 'w3', label: '3주 후', monthLabel: '4~5월', month: 5,
+    weekId: 'w3', label: '3주 후', monthLabel: '4~5월', month: 4,
     days: [
-      { date: 29, day: '월', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: [] },
-      { date: 30, day: '화', isWeekend: false, holiday: '', drop: '엄마', pick: '할머니', notes: [] },
-      { date: 1, day: '수', isWeekend: false, holiday: '', drop: '할머니', pick: '아빠', notes: [] },
-      { date: 2, day: '목', isWeekend: false, holiday: '', drop: '엄마', pick: '엄마', notes: [] },
-      { date: 3, day: '금', isWeekend: false, holiday: '', drop: '아빠', pick: '할머니', notes: [] },
-      { date: 4, day: '토', isWeekend: true, holiday: '', family: '근교 나들이', notes: [] },
-      { date: 5, day: '일', isWeekend: true, holiday: '어린이날', family: '어린이날 행사', notes: ['놀이동산 11시'] },
+      { date: 27, day: '월', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: [] },
+      { date: 28, day: '화', isWeekend: false, holiday: '', drop: '엄마', pick: '할머니', notes: [] },
+      { date: 29, day: '수', isWeekend: false, holiday: '', drop: '할머니', pick: '아빠', notes: [] },
+      { date: 30, day: '목', isWeekend: false, holiday: '', drop: '엄마', pick: '엄마', notes: [] },
+      { date: 1, day: '금', isWeekend: false, holiday: '', drop: '아빠', pick: '할머니', notes: [] },
+      { date: 2, day: '토', isWeekend: true, holiday: '', family: '근교 나들이', notes: [] },
+      { date: 3, day: '일', isWeekend: true, holiday: '', family: '가족 모임', notes: [] },
     ]
   }
 ];
 
 function generateMonth(year, month) {
-  const HOLIDAYS = { '04-25': '크리스마스', '05-05': '어린이날', '06-06': '현충일' };
+  const HOLIDAYS = { '01-01': '신정', '02-16': '설날', '02-17': '설날', '02-18': '설날', '03-01': '삼일절', '05-05': '어린이날', '05-24': '부처님오신날', '05-25': '대체공휴일', '06-06': '현충일', '08-15': '광복절', '09-24': '추석', '09-25': '추석', '09-26': '추석', '10-03': '개천절', '10-09': '한글날', '12-25': '크리스마스' };
   const firstDow = new Date(year, month - 1, 1).getDay();
   const daysInMonth = new Date(year, month, 0).getDate();
   const today = new Date();
@@ -73,17 +74,35 @@ function generateMonth(year, month) {
 const CALENDAR_MONTHS = [generateMonth(2026, 3), generateMonth(2026, 4), generateMonth(2026, 5), generateMonth(2026, 6)];
 
 const Scheduler = () => {
-  const { caretakerColors, updateColor, addCaretaker } = useColors();
+  const { caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker } = useColors();
   const [weeks, setWeeks] = useState(INITIAL_WEEKS);
   const [weekIndex, setWeekIndex] = useState(1);
   const [showSettings, setShowSettings] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [newName, setNewName] = useState('');
   const [picker, setPicker] = useState(null); // { dayIdx, type }
+  const [editNote, setEditNote] = useState(null); // { dayIdx, text }
 
   const caretakers = Object.keys(caretakerColors);
   const week = weeks[weekIndex];
   const getColor = (person) => caretakerColors[person] || '#f0f0f0';
+
+  const openNoteEditor = (dayIdx, notesArr) => {
+    setEditNote({ dayIdx, text: notesArr.join('\n') });
+  };
+
+  const saveNote = () => {
+    if (!editNote) return;
+    const notesArr = editNote.text.split('\n').map(s => s.trim()).filter(Boolean);
+    const newWeeks = weeks.map((w, wi) => {
+      if (wi !== weekIndex) return w;
+      return { ...w, days: w.days.map((d, di) => {
+        if (di !== editNote.dayIdx) return d;
+        return { ...d, notes: notesArr };
+      })};
+    });
+    setWeeks(newWeeks);
+    setEditNote(null);
+  };
 
   const openPicker = (dayIdx, type) => {
     setPicker(picker && picker.dayIdx === dayIdx && picker.type === type ? null : { dayIdx, type });
@@ -102,16 +121,19 @@ const Scheduler = () => {
     setPicker(null);
   };
 
-  const handleAddPerson = (e) => {
-    e.preventDefault();
-    if (!newName.trim()) return;
-    addCaretaker(newName.trim());
-    setNewName('');
-  };
-
   const handleCalendarDateClick = (date, month) => {
-    const idx = INITIAL_WEEKS.findIndex(w => w.days.some(d => d.date === date && (w.month === month || (month === 5 && w.month === 5))));
-    if (idx >= 0) { setWeekIndex(idx); setShowCalendar(false); }
+    const targetWeekIdx = weeks.findIndex(w => 
+      w.days.some(d => {
+        // Since mock data dates are unique within this small window, matching date is mostly enough.
+        // For month edge cases (e.g. May 1st to 3rd), w.month is 4 but it covers May 1-3. 
+        if (month === 5 && date <= 3) return w.weekId === 'w3' && d.date === date;
+        return d.date === date;
+      })
+    );
+    if (targetWeekIdx >= 0) {
+      setWeekIndex(targetWeekIdx);
+      setShowCalendar(false);
+    }
   };
 
   return (
@@ -127,7 +149,7 @@ const Scheduler = () => {
 
       <div className="top-actions">
         <button className="act-btn" onClick={() => setShowCalendar(true)}><CalendarIcon size={14}/> 달력</button>
-        <button className="act-btn" onClick={() => setShowSettings(true)}><Settings2 size={14}/> 설정</button>
+        <button className="act-btn" onClick={() => setShowSettings(true)}><Settings2 size={14}/> 구성원</button>
       </div>
 
       <div className="sched-table">
@@ -181,37 +203,15 @@ const Scheduler = () => {
                   </div>
                 </>
               )}
-              <div className="td-notes">
-                {d.notes.length > 0 ? d.notes.map((n,ni) => <span key={ni} className="note-line">· {n}</span>) : <span className="note-empty">-</span>}
+              <div className="td-notes" onClick={() => openNoteEditor(i, d.notes)} style={{cursor: 'pointer'}}>
+                {d.notes.length > 0 ? d.notes.map((n,ni) => <span key={ni} className="note-line">· {n}</span>) : <span className="note-empty">+ 메모 추가</span>}
               </div>
             </div>
           );
         })}
       </div>
 
-      {showSettings && (
-        <div className="modal-overlay" onClick={() => setShowSettings(false)}>
-          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
-            <div className="sheet-title"><span>설정</span><button onClick={() => setShowSettings(false)}><X size={20}/></button></div>
-            <div className="settings-body">
-              <section className="settings-section">
-              <h4>담당자 관리</h4>
-              {caretakers.map(p => (
-                <div key={p} className="color-row">
-                  <span className="p-name">{p}</span>
-                  <input type="color" className="color-input" value={caretakerColors[p]} onChange={e => updateColor(p, e.target.value)}/>
-                </div>
-              ))}
-              <form className="add-p-form" onSubmit={handleAddPerson}>
-                <input type="text" placeholder="새 이름..." value={newName} onChange={e => setNewName(e.target.value)}/>
-                <button type="submit"><Plus size={16}/></button>
-              </form>
-              </section>
-            </div>
-            <button className="close-btn" onClick={() => setShowSettings(false)}>완료</button>
-          </div>
-        </div>
-      )}
+      {showSettings && <MemberSettings onClose={() => setShowSettings(false)} />}
 
       {showCalendar && (
         <div className="modal-overlay" onClick={() => setShowCalendar(false)}>
@@ -233,6 +233,27 @@ const Scheduler = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editNote && (
+        <div className="modal-overlay" onClick={() => setEditNote(null)}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="sheet-title"><span>특이사항 편집</span><button onClick={() => setEditNote(null)}><X size={20}/></button></div>
+            <div className="settings-body" style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
+              <textarea 
+                value={editNote.text}
+                onChange={e => setEditNote({...editNote, text: e.target.value})}
+                placeholder="특이사항을 입력하세요 (줄바꿈 가능)"
+                style={{width: '100%', height: '120px', padding: '12px', borderRadius: '12px', border: '1px solid #ddd', resize: 'none', fontSize: '1rem', outline: 'none'}}
+                autoFocus
+              />
+              <button 
+                onClick={saveNote}
+                style={{background: 'var(--text-main)', color: 'white', padding: '14px', borderRadius: '12px', fontWeight: '800', fontSize: '1rem'}}
+              >저장하기</button>
             </div>
           </div>
         </div>
