@@ -155,7 +155,7 @@ const FamilyBoard = () => {
                 onClick={() => setEditingMedia({ ...currentMedia })}
                 style={{display:'flex', alignItems:'center', gap:'4px', background:'#f0f4f8', color:'#333', border:'none', padding:'6px 12px', borderRadius:'14px', fontSize:'0.85rem', fontWeight:'700', cursor:'pointer'}}
               >
-                <Palette size={14}/> 꾸미기/수정
+                <Palette size={14}/> 꾸미기
               </button>
               <button 
                 onClick={() => deleteMedia(currentMedia.id)}

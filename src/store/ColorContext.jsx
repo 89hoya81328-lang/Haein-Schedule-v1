@@ -42,8 +42,37 @@ export const ColorProvider = ({ children }) => {
     }));
   };
 
+  const removeCaretaker = (name) => {
+    setCaretakerColors(prev => {
+      const next = {...prev};
+      delete next[name];
+      return next;
+    });
+    setCaretakerEmojis(prev => {
+      const next = {...prev};
+      delete next[name];
+      return next;
+    });
+  };
+
+  const renameCaretaker = (oldName, newName) => {
+    if (!newName.trim() || oldName === newName) return;
+    setCaretakerColors(prev => {
+      const next = {...prev};
+      next[newName] = next[oldName];
+      delete next[oldName];
+      return next;
+    });
+    setCaretakerEmojis(prev => {
+      const next = {...prev};
+      next[newName] = next[oldName];
+      delete next[oldName];
+      return next;
+    });
+  };
+
   return (
-    <ColorContext.Provider value={{ caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker }}>
+    <ColorContext.Provider value={{ caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker, removeCaretaker, renameCaretaker }}>
       {children}
     </ColorContext.Provider>
   );
