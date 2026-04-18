@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Heart, Grid, MessageSquare, X, ChevronLeft, ChevronRight, Play, Settings2, Plus, Upload } from 'lucide-react';
+import { Send, Heart, Grid, MessageSquare, X, ChevronLeft, ChevronRight, Play, Settings2, Plus, Upload, Pencil, Trash2, Palette, Check } from 'lucide-react';
 import { useColors } from '../store/ColorContext';
 import { MemberSettings } from '../components/MemberSettings';
 import './FamilyBoard.css';
@@ -29,6 +29,7 @@ const MediaItem = ({ item, className }) => {
         className={className}
         src={item.url}
         poster={item.poster}
+        style={{ filter: item.cssFilter || 'none' }}
         autoPlay
         muted
         loop
@@ -36,7 +37,7 @@ const MediaItem = ({ item, className }) => {
       />
     );
   }
-  return <img src={item.url} alt={item.caption} className={className} />;
+  return <img src={item.url} alt={item.caption} className={className} style={{ filter: item.cssFilter || 'none' }} />;
 };
 
 const FamilyBoard = () => {
@@ -50,6 +51,12 @@ const FamilyBoard = () => {
   const [newMsg, setNewMsg] = useState('');
   const [mediaIndex, setMediaIndex] = useState(0);
   const [showGallery, setShowGallery] = useState(false);
+  
+  const [editingMsgId, setEditingMsgId] = useState(null);
+  const [editingMsgText, setEditingMsgText] = useState('');
+  
+  const [editingMedia, setEditingMedia] = useState(null); // { id, caption, cssFilter }
+
   const fileInputRef = React.useRef(null);
 
   const getEmoji = (a) => caretakerEmojis[a] || '💬';
@@ -62,6 +69,30 @@ const FamilyBoard = () => {
     const dateStr = `${now.getFullYear().toString().slice(2)}.${pad(now.getMonth()+1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
     setMessages([{ id: Date.now(), author: currentUser, text: newMsg, date: dateStr }, ...messages]);
     setNewMsg('');
+  };
+
+  const startEditMsg = (m) => {
+    setEditingMsgId(m.id);
+    setEditingMsgText(m.text);
+  };
+
+  const saveEditMsg = (id) => {
+    if (!editingMsgText.trim()) return;
+    setMessages(prev => prev.map(m => m.id === id ? { ...m, text: editingMsgText } : m));
+    setEditingMsgId(null);
+  };
+
+  const deleteMedia = (id) => {
+    const updated = media.filter(m => m.id !== id);
+    if (updated.length === 0) return; // Prevent deleting last for mock safety
+    setMedia(updated);
+    setMediaIndex(i => Math.min(i, updated.length - 1));
+  };
+
+  const saveMediaEdit = () => {
+    if (!editingMedia) return;
+    setMedia(prev => prev.map(m => m.id === editingMedia.id ? { ...m, caption: editingMedia.caption, cssFilter: editingMedia.cssFilter } : m));
+    setEditingMedia(null);
   };
 
   const handleFileUpload = (e) => {
@@ -114,7 +145,26 @@ const FamilyBoard = () => {
               <MediaItem item={currentMedia} className="car-img" />
               {currentMedia.type === 'video' && <span className="video-badge"><Play size={12}/> 동영상</span>}
             </div>
-            <div className="car-meta"><span className="car-cap">{currentMedia.caption}</span><span className="car-date">{currentMedia.date}</span></div>
+            <div className="car-meta">
+              <span className="car-cap">{currentMedia.caption}</span>
+              <span className="car-date">{currentMedia.date}</span>
+            </div>
+            
+            <div style={{display:'flex', gap:'10px', justifyContent:'center', marginTop:'12px'}}>
+              <button 
+                onClick={() => setEditingMedia({ ...currentMedia })}
+                style={{display:'flex', alignItems:'center', gap:'4px', background:'#f0f4f8', color:'#333', border:'none', padding:'6px 12px', borderRadius:'14px', fontSize:'0.85rem', fontWeight:'700', cursor:'pointer'}}
+              >
+                <Palette size={14}/> 꾸미기/수정
+              </button>
+              <button 
+                onClick={() => deleteMedia(currentMedia.id)}
+                style={{display:'flex', alignItems:'center', gap:'4px', background:'#fff0f0', color:'#ff3b3b', border:'none', padding:'6px 12px', borderRadius:'14px', fontSize:'0.85rem', fontWeight:'700', cursor:'pointer'}}
+              >
+                <Trash2 size={14}/> 삭제
+              </button>
+            </div>
+
             <div className="car-dots">{media.map((_,i) => <span key={i} className={`dot ${i===mediaIndex?'active':''}`} onClick={() => setMediaIndex(i)}/>)}</div>
           </div>
           <button className="car-btn" onClick={() => setMediaIndex(i => Math.min(media.length-1, i+1))} disabled={mediaIndex===media.length-1}><ChevronRight size={18}/></button>
@@ -131,8 +181,29 @@ const FamilyBoard = () => {
         <div className="msg-feed" style={{ maxHeight: '360px', overflowY: 'auto' }}>
           {messages.map(m => (
             <div key={m.id} className="msg-item">
-              <div className="msg-head"><span className="msg-emoji">{getEmoji(m.author)}</span><span className="msg-who">{m.author}</span><span className="msg-date">{m.date}</span></div>
-              <div className="msg-body">{m.text}</div>
+              <div className="msg-head">
+                <span className="msg-emoji">{getEmoji(m.author)}</span>
+                <span className="msg-who">{m.author}</span>
+                <span className="msg-date">{m.date}</span>
+                {m.author === currentUser && editingMsgId !== m.id && (
+                  <div style={{marginLeft: 'auto', display:'flex', gap:'6px'}}>
+                    <button onClick={() => startEditMsg(m)} style={{background: 'none', border:'none', color:'#999', cursor:'pointer'}}>
+                      <Pencil size={12}/>
+                    </button>
+                    <button onClick={() => setMessages(prev => prev.filter(msg => msg.id !== m.id))} style={{background: 'none', border:'none', color:'#ff6b6b', cursor:'pointer'}}>
+                      <Trash2 size={12}/>
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="msg-body">
+                {editingMsgId === m.id ? (
+                  <div style={{display:'flex', gap:'8px', marginTop:'4px'}}>
+                    <input type="text" value={editingMsgText} onChange={e => setEditingMsgText(e.target.value)} style={{flex:1, padding:'6px', borderRadius:'8px', border:'1px solid #ddd'}} />
+                    <button onClick={() => saveEditMsg(m.id)} style={{background:'var(--text-main)', color:'white', border:'none', borderRadius:'6px', padding:'0 12px', fontWeight:'700'}}><Check size={14}/></button>
+                  </div>
+                ) : m.text}
+              </div>
             </div>
           ))}
         </div>
@@ -159,6 +230,63 @@ const FamilyBoard = () => {
           <button type="submit"><Send size={18}/></button>
         </form>
       </section>
+
+      {/* Media Edit/Decorate Modal */}
+      {editingMedia && (
+        <div className="overlay" onClick={() => setEditingMedia(null)} style={{zIndex: 2000}}>
+          <div className="sheet" onClick={e => e.stopPropagation()} style={{maxWidth: '480px', margin:'auto'}}>
+            <div className="gallery-hdr" style={{padding:'20px 24px', borderBottom:'1px solid #eee', display:'flex', justifyContent:'space-between'}}>
+              <div style={{display:'flex', gap:'8px', alignItems:'center', fontWeight:'900'}}><Palette size={20}/> <span>미디어 꾸미기</span></div>
+              <button className="icon-btn" onClick={() => setEditingMedia(null)} style={{border:'none', background:'none', cursor:'pointer'}}><X size={24}/></button>
+            </div>
+            <div style={{padding: '24px', display:'flex', flexDirection:'column', gap:'20px'}}>
+              <div style={{textAlign:'center', background:'#f8f9fa', borderRadius:'16px', padding:'12px', maxHeight:'300px', display:'flex', justifyContent:'center'}}>
+                {editingMedia.type === 'video' ? (
+                  <video src={editingMedia.url} style={{filter: editingMedia.cssFilter || 'none', maxHeight:'260px', borderRadius:'12px'}} autoPlay muted loop/>
+                ) : (
+                  <img src={editingMedia.url} style={{filter: editingMedia.cssFilter || 'none', maxHeight:'260px', borderRadius:'12px', objectFit:'contain'}}/>
+                )}
+              </div>
+              
+              <div>
+                <label style={{fontSize:'0.9rem', fontWeight:'900', color:'#444', marginBottom:'10px', display:'block'}}>사진 필터 (꾸미기)</label>
+                <div style={{display:'flex', gap:'8px', overflowX:'auto', paddingBottom:'10px', scrollbarWidth:'none'}}>
+                  {[{l:'원본',f:'none'}, {l:'화사하게',f:'brightness(1.15) contrast(1.1) saturate(1.2)'}, {l:'흑백',f:'grayscale(100%)'}, {l:'세피아',f:'sepia(80%)'}, {l:'따뜻하게',f:'sepia(30%) saturate(140%)'}].map(opt => (
+                    <button 
+                      key={opt.l} 
+                      onClick={() => setEditingMedia({...editingMedia, cssFilter: opt.f})}
+                      style={{
+                        padding: '8px 16px', borderRadius: '20px', border: editingMedia.cssFilter === opt.f ? 'none' : '1px solid #ddd', whiteSpace:'nowrap',
+                        background: editingMedia.cssFilter === opt.f ? 'var(--text-main)' : 'white',
+                        color: editingMedia.cssFilter === opt.f ? 'white' : '#555', fontWeight: '800', cursor:'pointer', transition:'all 0.2s'
+                      }}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label style={{fontSize:'0.9rem', fontWeight:'900', color:'#444', marginBottom:'10px', display:'block'}}>설명글(Caption) 수정</label>
+                <input 
+                  type="text" 
+                  value={editingMedia.caption} 
+                  onChange={e => setEditingMedia({...editingMedia, caption: e.target.value})}
+                  style={{width:'100%', padding:'14px', borderRadius:'12px', border:'1px solid #ddd', fontSize:'1rem'}}
+                />
+              </div>
+
+              <button 
+                onClick={saveMediaEdit}
+                style={{width:'100%', padding:'16px', borderRadius:'16px', background:'var(--text-main)', color:'white', fontWeight:'900', border:'none', fontSize:'1.05rem', marginTop:'10px', cursor:'pointer'}}
+              >
+                변경사항 저장하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Gallery Modal */}
       {showGallery && (

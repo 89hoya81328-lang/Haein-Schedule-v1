@@ -9,7 +9,7 @@ const INITIAL_WEEKS = [
     weekId: 'w0', label: '지난 주', monthLabel: '4월', month: 4,
     days: [
       { date: 6, day: '월', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: [] },
-      { date: 7, day: '화', isWeekend: false, holiday: '', drop: '엄마', pick: '할머니', notes: ['치과 검진일'] },
+      { date: 7, day: '화', isWeekend: false, holiday: '', drop: '엄마', pick: '할머니', notes: [] },
       { date: 8, day: '수', isWeekend: false, holiday: '', drop: '할머니', pick: '아빠', notes: [] },
       { date: 9, day: '목', isWeekend: false, holiday: '', drop: '엄마', pick: '엄마', notes: [] },
       { date: 10, day: '금', isWeekend: false, holiday: '', drop: '아빠', pick: '할머니', notes: [] },
@@ -20,20 +20,20 @@ const INITIAL_WEEKS = [
   {
     weekId: 'w1', label: '이번 주', monthLabel: '4월', month: 4,
     days: [
-      { date: 13, day: '월', isWeekend: false, holiday: '', drop: '엄마', pick: '아빠', notes: ['준비물 챙기기', '우산 준비'] },
-      { date: 14, day: '화', isWeekend: false, holiday: '', drop: '아빠', pick: '할머니', notes: ['체육복 입는 날'] },
-      { date: 15, day: '수', isWeekend: false, holiday: '', drop: '엄마', pick: '엄마', notes: ['특별 활동 (요리)'] },
-      { date: 16, day: '목', isWeekend: false, holiday: '', drop: '할머니', pick: '아빠', notes: ['병원 예약 하원'] },
-      { date: 17, day: '금', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: ['이불 가져오기'] },
-      { date: 18, day: '토', isWeekend: true, holiday: '', family: '할아버지 댁 방문', notes: ['오전 10시 출발'] },
-      { date: 19, day: '일', isWeekend: true, holiday: '', family: '동물원 나들이', notes: ['유모차, 간식 챙기기'] },
+      { date: 13, day: '월', isWeekend: false, holiday: '', drop: '엄마', pick: '아빠', notes: [] },
+      { date: 14, day: '화', isWeekend: false, holiday: '', drop: '아빠', pick: '할머니', notes: [] },
+      { date: 15, day: '수', isWeekend: false, holiday: '', drop: '엄마', pick: '엄마', notes: [] },
+      { date: 16, day: '목', isWeekend: false, holiday: '', drop: '할머니', pick: '아빠', notes: [] },
+      { date: 17, day: '금', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: [] },
+      { date: 18, day: '토', isWeekend: true, holiday: '', family: '할아버지 댁 방문', notes: [] },
+      { date: 19, day: '일', isWeekend: true, holiday: '', family: '동물원 나들이', notes: [] },
     ]
   },
   {
     weekId: 'w2', label: '다음 주', monthLabel: '4월', month: 4,
     days: [
       { date: 20, day: '월', isWeekend: false, holiday: '', drop: '엄마', pick: '아빠', notes: [] },
-      { date: 21, day: '화', isWeekend: false, holiday: '', drop: '할머니', pick: '할머니', notes: ['소풍 (도시락)'] },
+      { date: 21, day: '화', isWeekend: false, holiday: '', drop: '할머니', pick: '할머니', notes: [] },
       { date: 22, day: '수', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: [] },
       { date: 23, day: '목', isWeekend: false, holiday: '', drop: '엄마', pick: '할머니', notes: [] },
       { date: 24, day: '금', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: [] },
@@ -81,6 +81,7 @@ const Scheduler = () => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [picker, setPicker] = useState(null); // { dayIdx, type }
   const [editNote, setEditNote] = useState(null); // { dayIdx, text }
+  const [editFamily, setEditFamily] = useState(null); // { dayIdx, text }
 
   const caretakers = Object.keys(caretakerColors);
   const week = weeks[weekIndex];
@@ -102,6 +103,23 @@ const Scheduler = () => {
     });
     setWeeks(newWeeks);
     setEditNote(null);
+  };
+
+  const openFamilyEditor = (dayIdx, text) => {
+    setEditFamily({ dayIdx, text: text || '' });
+  };
+
+  const saveFamily = () => {
+    if (!editFamily) return;
+    const newWeeks = weeks.map((w, wi) => {
+      if (wi !== weekIndex) return w;
+      return { ...w, days: w.days.map((d, di) => {
+        if (di !== editFamily.dayIdx) return d;
+        return { ...d, family: editFamily.text.trim() };
+      })};
+    });
+    setWeeks(newWeeks);
+    setEditFamily(null);
   };
 
   const openPicker = (dayIdx, type) => {
@@ -136,6 +154,13 @@ const Scheduler = () => {
     }
   };
 
+  const curDate = new Date();
+  const todayMatch = (dMonth, dDate) => {
+    return curDate.getFullYear() === 2026 && 
+           curDate.getMonth() + 1 === dMonth && 
+           curDate.getDate() === dDate;
+  };
+
   return (
     <div className="scheduler-container page-transition">
       <div className="week-nav">
@@ -162,16 +187,19 @@ const Scheduler = () => {
         {week.days.map((d, i) => {
           const isH = !!d.holiday;
           const isW = d.isWeekend;
+          const currentDayMonth = d.date > 20 && week.monthLabel.includes('5') && d.date >= 1 && d.date <= 6 ? 5 : week.month;
+          const isCurrentToday = todayMatch(currentDayMonth, d.date);
+          
           return (
             <div key={i} className={`sched-row ${isH ? 'row-holiday' : ''} ${isW ? 'row-weekend' : ''}`}>
               <div className="td-date">
-                <span className="td-date-num">{d.date}</span>
+                <span className={`td-date-num ${isCurrentToday ? 'today-circle' : ''}`}>{d.date}</span>
                 <span className="td-date-day">{d.day}</span>
               </div>
               {(isH || isW) ? (
-                <div className="td-family-span">
+                <div className="td-family-span" onClick={() => openFamilyEditor(i, d.family)} style={{cursor: 'pointer'}}>
                   {isH && <span className="hol-tag">{d.holiday}</span>}
-                  <span className="fam-text">{d.family}</span>
+                  <span className="fam-text">{d.family || '+ 일정 추가'}</span>
                 </div>
               ) : (
                 <>
@@ -211,6 +239,38 @@ const Scheduler = () => {
         })}
       </div>
 
+      {editNote && (
+        <div className="modal-overlay" onClick={() => setEditNote(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h4>특이사항 수정</h4>
+            <textarea
+              value={editNote.text}
+              onChange={e => setEditNote({ ...editNote, text: e.target.value })}
+              placeholder="특이사항을 입력하세요 (엔터로 줄바꿈)"
+              autoFocus
+            />
+            <button className="modal-save-btn" onClick={saveNote}>저장</button>
+          </div>
+        </div>
+      )}
+
+      {editFamily && (
+        <div className="modal-overlay" onClick={saveFamily}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h4>일정 수정</h4>
+            <input
+              type="text"
+              value={editFamily.text}
+              onChange={e => setEditFamily({ ...editFamily, text: e.target.value })}
+              placeholder="예: 집콕 휴식, 마트 구경 등"
+              autoFocus
+              onKeyDown={e => { if (e.key === 'Enter') saveFamily(); }}
+              style={{width: '100%', padding: '10px', marginTop: '10px', borderRadius: '8px', border: '1px solid #ddd'}}
+            />
+          </div>
+        </div>
+      )}
+
       {showSettings && <MemberSettings onClose={() => setShowSettings(false)} />}
 
       {showCalendar && (
@@ -225,7 +285,7 @@ const Scheduler = () => {
                     {['일','월','화','수','목','금','토'].map(d => <div key={d} className="cal-dn">{d}</div>)}
                     {Array.from({length: m.firstDow}).map((_,i)=><div key={`p${i}`}/>)}
                     {m.days.map((d,i) => (
-                      <div key={i} className={`cal-d ${d.holiday?'cal-hol':''} ${d.isWeekend?'cal-we':''} ${d.isToday?'cal-today':''}`} onClick={() => handleCalendarDateClick(d.date, m.month)}>
+                      <div key={i} className={`cal-d ${d.holiday?'cal-hol':''} ${d.isWeekend?'cal-we':''} ${d.isToday?'today-circle':''}`} onClick={() => handleCalendarDateClick(d.date, m.month)}>
                         {d.date}
                         {d.holiday && <span className="cal-dot"/>}
                       </div>
