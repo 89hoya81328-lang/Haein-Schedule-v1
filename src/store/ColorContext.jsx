@@ -71,8 +71,27 @@ export const ColorProvider = ({ children }) => {
     });
   };
 
+  const reorderCaretakers = (sourceIndex, destIndex) => {
+    setCaretakerColors(prev => {
+      const keys = Object.keys(prev);
+      const [moved] = keys.splice(sourceIndex, 1);
+      keys.splice(destIndex, 0, moved);
+      const next = {};
+      keys.forEach(k => next[k] = prev[k]);
+      return next;
+    });
+    setCaretakerEmojis(prev => {
+      const keys = Object.keys(prev);
+      const [moved] = keys.splice(sourceIndex, 1);
+      keys.splice(destIndex, 0, moved);
+      const next = {};
+      keys.forEach(k => next[k] = prev[k]);
+      return next;
+    });
+  };
+
   return (
-    <ColorContext.Provider value={{ caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker, removeCaretaker, renameCaretaker }}>
+    <ColorContext.Provider value={{ caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker, removeCaretaker, renameCaretaker, reorderCaretakers }}>
       {children}
     </ColorContext.Provider>
   );

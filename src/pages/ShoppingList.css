@@ -8,7 +8,7 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding-bottom: 80px; /* space for bottom action bar */
+  padding-bottom: 140px; /* space for bottom action bar + nav */
 }
 
 .shop-desktop { display: none; }

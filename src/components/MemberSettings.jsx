@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Trash2, Check } from 'lucide-react';
+import { X, Plus, Trash2, Check, GripVertical } from 'lucide-react';
 import { useColors } from '../store/ColorContext';
 
 const EMOJI_CATEGORIES = [
@@ -97,13 +97,14 @@ const EmojiPickerModal = ({ currentEmoji, onSelect, onClose }) => {
 };
 
 export const MemberSettings = ({ onClose }) => {
-  const { caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker, removeCaretaker, renameCaretaker } = useColors();
+  const { caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker, removeCaretaker, renameCaretaker, reorderCaretakers } = useColors();
   const authors = Object.keys(caretakerEmojis);
   const [newName, setNewName] = useState('');
   const [pickingFor, setPickingFor] = useState(null);
   
   const [editingAuthor, setEditingAuthor] = useState(null);
   const [editingName, setEditingName] = useState('');
+  const [draggedIdx, setDraggedIdx] = useState(null);
 
   const handleAddPerson = (e) => {
     e.preventDefault();
@@ -124,6 +125,24 @@ export const MemberSettings = ({ onClose }) => {
     setEditingAuthor(null);
   };
 
+  const handleDragStart = (e, idx) => {
+    setDraggedIdx(idx);
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => { if (e.target) e.target.style.opacity = '0.5'; }, 0);
+  };
+
+  const handleDragOver = (e, idx) => {
+    e.preventDefault();
+    if (draggedIdx === null || draggedIdx === idx) return;
+    reorderCaretakers(draggedIdx, idx);
+    setDraggedIdx(idx);
+  };
+
+  const handleDragEnd = (e) => {
+    setDraggedIdx(null);
+    if (e.target) e.target.style.opacity = '1';
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-sheet" onClick={e => e.stopPropagation()}>
@@ -133,8 +152,21 @@ export const MemberSettings = ({ onClose }) => {
         </div>
         <div className="settings-body" style={{padding: '20px'}}>
           <section className="settings-section">
-            {authors.map(p => (
-              <div key={p} className="color-row" style={{display: 'flex', justifyContent: 'space-between', marginBottom: '12px', alignItems: 'center'}}>
+            {authors.map((p, idx) => (
+              <div 
+                key={p} 
+                className="color-row" 
+                draggable
+                onDragStart={(e) => handleDragStart(e, idx)}
+                onDragOver={(e) => handleDragOver(e, idx)}
+                onDragEnd={handleDragEnd}
+                style={{
+                  display: 'flex', justifyContent: 'space-between', marginBottom: '12px', alignItems: 'center',
+                  background: 'white', padding: '8px 12px', borderRadius: '12px', border: '1px solid #eee',
+                  cursor: 'grab'
+                }}
+              >
+                <div style={{display:'flex', alignItems:'center', color:'#ccc', marginRight:'12px', cursor:'grab'}}><GripVertical size={16}/></div>
                 {editingAuthor === p ? (
                   <div style={{display:'flex', gap:'8px', flex:1, marginRight:'12px'}}>
                     <input 
