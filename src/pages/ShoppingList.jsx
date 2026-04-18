@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Apple, Baby, Plus, Trash2, X } from 'lucide-react';
+import { Apple, Baby, Plus, Trash2, X, Rocket } from 'lucide-react';
 import './ShoppingList.css';
 
 const AddItemModal = ({ isOpen, onClose, onAdd, title }) => {
@@ -28,11 +28,12 @@ const AddItemModal = ({ isOpen, onClose, onAdd, title }) => {
             onChange={e => setVal(e.target.value)}
             autoFocus 
           />
-          <label style={{display:'flex', alignItems:'center', gap:'8px', marginTop: '12px', cursor:'pointer', fontSize: '0.9rem'}}>
+          <label className="coupang-check-label">
             <input type="checkbox" checked={isCoupang} onChange={e => setIsCoupang(e.target.checked)} />
-            🚀 쿠팡에서 주문할 항목
+            <span className="coupang-check-icon">🚀</span>
+            쿠팡 로켓배송 항목
           </label>
-          <button type="submit" className="modal-submit-btn" style={{marginTop: '16px'}}>추가하기</button>
+          <button type="submit" className="modal-submit-btn">추가하기</button>
         </form>
       </div>
     </div>
@@ -53,7 +54,8 @@ const ShoppingList = () => {
     { id: 12, text: '아기 로션', checked: false, isCoupang: false },
   ]);
 
-  const [modalOpen, setModalOpen] = useState(null); // 'g' or 's'
+  const [activeTab, setActiveTab] = useState('g');
+  const [modalOpen, setModalOpen] = useState(null);
 
   const toggle = (id, type) => {
     const s = type === 'g' ? setGroceries : setSupplies;
@@ -78,36 +80,52 @@ const ShoppingList = () => {
     }
   };
 
+  const currentItems = activeTab === 'g' ? groceries : supplies;
+  const currentSetter = activeTab === 'g' ? setGroceries : setSupplies;
+  const checkedCount = currentItems.filter(i => i.checked).length;
+  const totalCount = currentItems.length;
+
+  /* Desktop two-column card */
   const Col = ({ items, type, icon, title, color }) => {
     const cc = items.filter(i => i.checked).length;
     return (
       <div className="shop-col" style={{ backgroundColor: color }}>
         <div className="col-top">
           <h2 className="col-title">{icon} {title}</h2>
-          <div className="col-btns">
-            <button className="col-icon-btn plus-btn" onClick={() => setModalOpen(type)}><Plus size={16}/></button>
-            {cc > 0 && <button className="col-icon-btn del-btn" onClick={() => clear(type)}><Trash2 size={14}/></button>}
-          </div>
+          <span className="col-counter">{items.filter(i=>!i.checked).length}개 남음</span>
         </div>
 
         <div className="col-list">
           {items.map(item => (
             <div key={item.id} className={`shop-item ${item.checked ? 'done' : ''}`} onClick={() => toggle(item.id, type)}>
               <div className={`chk ${item.checked ? 'chk-on' : ''}`}/>
-              <span style={{flex: 1}}>{item.text}</span>
-              <button 
-                onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, type); }}
-                style={{
-                  background: item.isCoupang ? '#fff0f0' : 'transparent', 
-                  border: item.isCoupang ? '1px solid #ffcccc' : '1px solid transparent',
-                  borderRadius: '12px', padding: '4px 8px', fontSize: '0.8rem',
-                  opacity: item.isCoupang ? 1 : 0.3, transition: 'all 0.2s', cursor: 'pointer'
-                }}
-              >
-                🚀<span style={{fontWeight: '700', color: '#ff4040', marginLeft: '4px', display: item.isCoupang ? 'inline' : 'none'}}>로켓</span>
-              </button>
+              <span className="item-text">{item.text}</span>
+              {item.isCoupang && (
+                <span className="rocket-badge" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, type); }}>
+                  🚀
+                </span>
+              )}
+              {!item.isCoupang && (
+                <button 
+                  className="rocket-toggle-off"
+                  onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, type); }}
+                >
+                  🚀
+                </button>
+              )}
             </div>
           ))}
+        </div>
+
+        <div className="col-actions">
+          <button className="col-action-btn add-action" onClick={() => setModalOpen(type)}>
+            <Plus size={16}/> 추가
+          </button>
+          {cc > 0 && (
+            <button className="col-action-btn del-action" onClick={() => clear(type)}>
+              <Trash2 size={14}/> 완료 삭제 ({cc})
+            </button>
+          )}
         </div>
       </div>
     );
@@ -115,9 +133,74 @@ const ShoppingList = () => {
 
   return (
     <div className="shopping-container page-transition">
-      <div className="shop-grid">
-        <Col items={groceries} type="g" icon={<Apple size={16}/>} title="식자재" color="#ebf7ed"/>
-        <Col items={supplies} type="s" icon={<Baby size={16}/>} title="육아 용품" color="#fef0f5"/>
+      {/* ===== MOBILE LAYOUT ===== */}
+      <div className="shop-mobile">
+        {/* Tab Switcher */}
+        <div className="shop-tabs">
+          <button 
+            className={`shop-tab ${activeTab === 'g' ? 'tab-active' : ''}`} 
+            onClick={() => setActiveTab('g')}
+          >
+            <Apple size={16}/> 식자재
+            <span className="tab-count">{groceries.filter(i=>!i.checked).length}</span>
+          </button>
+          <button 
+            className={`shop-tab ${activeTab === 's' ? 'tab-active' : ''}`}
+            onClick={() => setActiveTab('s')}
+          >
+            <Baby size={16}/> 육아 용품
+            <span className="tab-count">{supplies.filter(i=>!i.checked).length}</span>
+          </button>
+        </div>
+
+        {/* Item List */}
+        <div className="shop-mobile-list">
+          {currentItems.length === 0 && (
+            <div className="empty-state">
+              <span className="empty-icon">{activeTab === 'g' ? '🥬' : '🍼'}</span>
+              <p>항목이 없어요</p>
+            </div>
+          )}
+          {currentItems.map(item => (
+            <div key={item.id} className={`shop-item-mobile ${item.checked ? 'done' : ''}`} onClick={() => toggle(item.id, activeTab)}>
+              <div className={`chk ${item.checked ? 'chk-on' : ''}`}/>
+              <span className="item-text">{item.text}</span>
+              {item.isCoupang && (
+                <span className="rocket-badge" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, activeTab); }}>
+                  🚀
+                </span>
+              )}
+              {!item.isCoupang && (
+                <button 
+                  className="rocket-toggle-off"
+                  onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, activeTab); }}
+                >
+                  🚀
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom action bar */}
+        <div className="mobile-action-bar">
+          {checkedCount > 0 && (
+            <button className="mobile-action-btn delete-btn" onClick={() => clear(activeTab)}>
+              <Trash2 size={16}/> 완료 삭제 <span className="action-count">{checkedCount}</span>
+            </button>
+          )}
+          <button className="mobile-action-btn add-btn" onClick={() => setModalOpen(activeTab)}>
+            <Plus size={18}/> 추가
+          </button>
+        </div>
+      </div>
+
+      {/* ===== DESKTOP LAYOUT ===== */}
+      <div className="shop-desktop">
+        <div className="shop-grid">
+          <Col items={groceries} type="g" icon={<Apple size={18}/>} title="식자재" color="#f0f9f1"/>
+          <Col items={supplies} type="s" icon={<Baby size={18}/>} title="육아 용품" color="#fef0f5"/>
+        </div>
       </div>
 
       <AddItemModal 
