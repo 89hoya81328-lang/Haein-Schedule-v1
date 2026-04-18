@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useColors } from '../store/ColorContext';
-import { Settings2, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Settings2, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, Plus, Check } from 'lucide-react';
 import { MemberSettings } from '../components/MemberSettings';
 import './Scheduler.css';
 
@@ -205,29 +205,9 @@ const Scheduler = () => {
                 <>
                   <div className="td-shift-wrap">
                     <div className="td-shift" onClick={() => openPicker(i, 'drop')}><span className="badge" style={{backgroundColor: getColor(d.drop)}}>{d.drop}</span></div>
-                    {picker && picker.dayIdx === i && picker.type === 'drop' && (
-                      <div className="picker-popup">
-                        {caretakers.map(p => (
-                          <div key={p} className={`picker-item ${p === d.drop ? 'picker-active' : ''}`} onClick={() => selectCaretaker(p)}>
-                            <span className="picker-dot" style={{backgroundColor: getColor(p)}}/>
-                            <span>{p}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                   <div className="td-shift-wrap">
                     <div className="td-shift" onClick={() => openPicker(i, 'pick')}><span className="badge" style={{backgroundColor: getColor(d.pick)}}>{d.pick}</span></div>
-                    {picker && picker.dayIdx === i && picker.type === 'pick' && (
-                      <div className="picker-popup">
-                        {caretakers.map(p => (
-                          <div key={p} className={`picker-item ${p === d.pick ? 'picker-active' : ''}`} onClick={() => selectCaretaker(p)}>
-                            <span className="picker-dot" style={{backgroundColor: getColor(p)}}/>
-                            <span>{p}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </>
               )}
@@ -238,6 +218,45 @@ const Scheduler = () => {
           );
         })}
       </div>
+
+      {/* Caretaker Picker Modal */}
+      {picker && (
+        <div className="modal-overlay" onClick={() => setPicker(null)} style={{zIndex: 9000}}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{padding: '24px', maxWidth: '340px', margin: 'auto', borderRadius: '24px', height: 'auto', maxHeight: '90vh'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center'}}>
+              <h4 style={{margin: 0, fontSize: '1.2rem', fontWeight: '900'}}>{picker.type === 'drop' ? '등원' : '하원'} 담당자 선택</h4>
+              <button onClick={() => setPicker(null)} style={{background: '#f0f0f0', border: 'none', cursor: 'pointer', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><X size={18}/></button>
+            </div>
+            <div style={{display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto', paddingBottom: '10px', scrollbarWidth: 'none'}}>
+              {caretakers.map(p => {
+                const isSelected = p === week.days[picker.dayIdx][picker.type];
+                return (
+                  <button
+                    key={p}
+                    onClick={() => selectCaretaker(p)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 20px',
+                      borderRadius: '20px', border: 'none',
+                      background: isSelected ? '#f8e8ea' : '#fff',
+                      color: isSelected ? 'var(--text-main)' : '#333',
+                      fontWeight: isSelected ? '900' : '700',
+                      fontSize: '1.05rem', cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s',
+                      boxShadow: isSelected ? '0 0 0 2px var(--text-main)' : '0 4px 12px rgba(0,0,0,0.03)'
+                    }}
+                    onPointerDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+                    onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                    onPointerLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    <span style={{width: '24px', height: '24px', borderRadius: '50%', background: getColor(p), border: '2px solid #fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'}}/>
+                    <span>{p}</span>
+                    {isSelected && <Check size={18} style={{marginLeft: 'auto'}}/>}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {editNote && (
         <div className="modal-overlay" onClick={() => setEditNote(null)}>

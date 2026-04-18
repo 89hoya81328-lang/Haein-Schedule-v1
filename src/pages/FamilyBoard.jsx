@@ -232,14 +232,15 @@ const FamilyBoard = () => {
 
       {/* Media Edit/Decorate Modal */}
       {editingMedia && (
-        <div className="overlay" onClick={() => setEditingMedia(null)} style={{zIndex: 2000}}>
-          <div className="sheet" onClick={e => e.stopPropagation()} style={{maxWidth: '480px', margin:'auto'}}>
-            <div className="gallery-hdr" style={{padding:'20px 24px', borderBottom:'1px solid #eee', display:'flex', justifyContent:'space-between'}}>
-              <div style={{display:'flex', gap:'8px', alignItems:'center', fontWeight:'900'}}><Palette size={20}/> <span>미디어 꾸미기</span></div>
-              <button className="icon-btn" onClick={() => setEditingMedia(null)} style={{border:'none', background:'none', cursor:'pointer'}}><X size={24}/></button>
+        <div className="modal-overlay" onClick={() => setEditingMedia(null)} style={{zIndex: 9000}}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{maxWidth: '480px', margin:'auto', padding:'24px', borderRadius:'24px', maxHeight:'90vh', overflowY:'auto'}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #eee', paddingBottom:'16px', marginBottom:'20px'}}>
+              <h4 style={{margin:0, fontSize:'1.2rem', fontWeight:'900', display:'flex', alignItems:'center', gap:'8px'}}><Palette size={20}/> 미디어 꾸미기</h4>
+              <button className="icon-btn" onClick={() => setEditingMedia(null)} style={{background:'#f0f0f0', border:'none', cursor:'pointer', borderRadius:'50%', width:'32px', height:'32px', display:'flex', alignItems:'center', justifyContent:'center'}}><X size={18}/></button>
             </div>
-            <div style={{padding: '24px', display:'flex', flexDirection:'column', gap:'20px'}}>
-              <div style={{textAlign:'center', background:'#f8f9fa', borderRadius:'16px', padding:'12px', maxHeight:'300px', display:'flex', justifyContent:'center'}}>
+            
+            <div style={{display:'flex', flexDirection:'column', gap:'20px'}}>
+              <div style={{textAlign:'center', background:'#f8f9fa', borderRadius:'16px', padding:'12px', maxHeight:'300px', display:'flex', justifyContent:'center', position:'relative'}}>
                 {editingMedia.type === 'video' ? (
                   <video src={editingMedia.url} style={{filter: editingMedia.cssFilter || 'none', maxHeight:'260px', borderRadius:'12px'}} autoPlay muted loop/>
                 ) : (
@@ -250,7 +251,10 @@ const FamilyBoard = () => {
               <div>
                 <label style={{fontSize:'0.9rem', fontWeight:'900', color:'#444', marginBottom:'10px', display:'block'}}>사진 필터 (꾸미기)</label>
                 <div style={{display:'flex', gap:'8px', overflowX:'auto', paddingBottom:'10px', scrollbarWidth:'none'}}>
-                  {[{l:'원본',f:'none'}, {l:'화사하게',f:'brightness(1.15) contrast(1.1) saturate(1.2)'}, {l:'흑백',f:'grayscale(100%)'}, {l:'세피아',f:'sepia(80%)'}, {l:'따뜻하게',f:'sepia(30%) saturate(140%)'}].map(opt => (
+                  {[
+                    {l:'원본',f:'none'}, {l:'화사하게',f:'brightness(1.15) contrast(1.1) saturate(1.2)'}, {l:'흑백',f:'grayscale(100%)'}, {l:'세피아',f:'sepia(80%)'}, {l:'따뜻하게',f:'sepia(30%) saturate(140%)'},
+                    {l:'블러',f:'blur(2px)'}, {l:'밝게',f:'brightness(1.3)'}, {l:'대비',f:'contrast(1.5)'}, {l:'차가운',f:'hue-rotate(180deg) saturate(120%)'}, {l:'인버트',f:'invert(100%)'}
+                  ].map(opt => (
                     <button 
                       key={opt.l} 
                       onClick={() => setEditingMedia({...editingMedia, cssFilter: opt.f})}
@@ -272,16 +276,24 @@ const FamilyBoard = () => {
                   type="text" 
                   value={editingMedia.caption} 
                   onChange={e => setEditingMedia({...editingMedia, caption: e.target.value})}
-                  style={{width:'100%', padding:'14px', borderRadius:'12px', border:'1px solid #ddd', fontSize:'1rem'}}
+                  style={{width:'100%', padding:'14px', borderRadius:'12px', border:'1px solid #ddd', fontSize:'1rem', outline:'none'}}
                 />
               </div>
 
-              <button 
-                onClick={saveMediaEdit}
-                style={{width:'100%', padding:'16px', borderRadius:'16px', background:'var(--text-main)', color:'white', fontWeight:'900', border:'none', fontSize:'1.05rem', marginTop:'10px', cursor:'pointer'}}
-              >
-                변경사항 저장하기
-              </button>
+              <div style={{display:'flex', gap:'10px', marginTop:'10px'}}>
+                <button 
+                  onClick={() => { deleteMedia(editingMedia.id); setEditingMedia(null); }}
+                  style={{width:'64px', flexShrink:0, padding:'14px 0', borderRadius:'16px', background:'#fff0f0', color:'#ff3b3b', fontWeight:'900', border:'1px solid #ffebeb', fontSize:'1rem', cursor:'pointer'}}
+                >
+                  <Trash2 size={20} style={{verticalAlign:'middle'}}/>
+                </button>
+                <button 
+                  onClick={saveMediaEdit}
+                  style={{flex:1, padding:'16px', borderRadius:'16px', background:'var(--text-main)', color:'white', fontWeight:'900', border:'none', fontSize:'1.05rem', cursor:'pointer'}}
+                >
+                  변경사항 저장하기
+                </button>
+              </div>
             </div>
           </div>
         </div>
