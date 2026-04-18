@@ -136,7 +136,7 @@ const ShoppingList = () => {
       {/* ===== MOBILE LAYOUT ===== */}
       <div className="shop-mobile">
         {/* Tab Switcher */}
-        <div className="shop-mobile-list" style={{gap: '12px', display: 'flex', flexDirection: 'row', padding: '12px 16px', overflowX: 'hidden'}}>
+        <div className="shop-mobile-list" style={{gap: '8px', display: 'flex', flexDirection: 'row', padding: '12px 8px', overflowX: 'hidden'}}>
           
           {/* Groceries Area */}
           <div 
@@ -144,7 +144,7 @@ const ShoppingList = () => {
             style={{
               flex: 1, minWidth: 0,
               border: activeTab === 'g' ? '2px solid #2e7d32' : '2px solid transparent',
-              borderRadius: '20px', padding: '12px', 
+              borderRadius: '20px', padding: '10px 6px', 
               background: '#f0f9f1',
               transition: 'all 0.2s', opacity: activeTab === 'g' ? 1 : 0.6,
               boxShadow: activeTab === 'g' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
@@ -164,13 +164,13 @@ const ShoppingList = () => {
               </div>
             )}
             {groceries.map(item => (
-              <div key={item.id} className={`shop-item-mobile ${item.checked ? 'done' : ''}`} onClick={(e) => { e.stopPropagation(); toggle(item.id, 'g'); }} style={{padding:'8px 6px', gap:'6px', display:'flex', alignItems:'center'}}>
-                <div style={{flexShrink:0}} className={`chk ${item.checked ? 'chk-on' : ''}`}/>
-                <span className="item-text" style={{fontSize:'0.85rem', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.text}</span>
+              <div key={item.id} className={`shop-item-mobile ${item.checked ? 'done' : ''}`} onClick={(e) => { e.stopPropagation(); toggle(item.id, 'g'); }} style={{padding:'6px 4px', gap:'4px', display:'flex', alignItems:'center'}}>
+                <div style={{flexShrink:0, width: '18px', height: '18px'}} className={`chk ${item.checked ? 'chk-on' : ''}`}/>
+                <span className="item-text" style={{fontSize:'0.8rem', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', letterSpacing: '-0.02em'}}>{item.text}</span>
                 {item.isCoupang ? (
-                  <span className="rocket-badge" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 'g'); }} style={{padding:'2px', fontSize:'0.8rem'}}>🚀</span>
+                  <span className="rocket-badge" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 'g'); }} style={{padding:'2px', fontSize:'0.75rem', flexShrink: 0}}>🚀</span>
                 ) : (
-                  <button className="rocket-toggle-off" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 'g'); }} style={{padding:'2px', fontSize:'0.8rem'}}>🚀</button>
+                  <button className="rocket-toggle-off" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 'g'); }} style={{padding:'2px', fontSize:'0.75rem', flexShrink: 0}}>🚀</button>
                 )}
               </div>
             ))}
@@ -182,7 +182,7 @@ const ShoppingList = () => {
             style={{
               flex: 1, minWidth: 0,
               border: activeTab === 's' ? '2px solid #c2185b' : '2px solid transparent',
-              borderRadius: '20px', padding: '12px', 
+              borderRadius: '20px', padding: '10px 6px', 
               background: '#fef0f5',
               transition: 'all 0.2s', opacity: activeTab === 's' ? 1 : 0.6,
               boxShadow: activeTab === 's' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
@@ -202,13 +202,13 @@ const ShoppingList = () => {
               </div>
             )}
             {supplies.map(item => (
-              <div key={item.id} className={`shop-item-mobile ${item.checked ? 'done' : ''}`} onClick={(e) => { e.stopPropagation(); toggle(item.id, 's'); }} style={{padding:'8px 6px', gap:'6px', display:'flex', alignItems:'center'}}>
-                <div style={{flexShrink:0}} className={`chk ${item.checked ? 'chk-on' : ''}`}/>
-                <span className="item-text" style={{fontSize:'0.85rem', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.text}</span>
+              <div key={item.id} className={`shop-item-mobile ${item.checked ? 'done' : ''}`} onClick={(e) => { e.stopPropagation(); toggle(item.id, 's'); }} style={{padding:'6px 4px', gap:'4px', display:'flex', alignItems:'center'}}>
+                <div style={{flexShrink:0, width: '18px', height: '18px'}} className={`chk ${item.checked ? 'chk-on' : ''}`}/>
+                <span className="item-text" style={{fontSize:'0.8rem', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', letterSpacing: '-0.02em'}}>{item.text}</span>
                 {item.isCoupang ? (
-                  <span className="rocket-badge" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 's'); }} style={{padding:'2px', fontSize:'0.8rem'}}>🚀</span>
+                  <span className="rocket-badge" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 's'); }} style={{padding:'2px', fontSize:'0.75rem', flexShrink: 0}}>🚀</span>
                 ) : (
-                  <button className="rocket-toggle-off" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 's'); }} style={{padding:'2px', fontSize:'0.8rem'}}>🚀</button>
+                  <button className="rocket-toggle-off" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 's'); }} style={{padding:'2px', fontSize:'0.75rem', flexShrink: 0}}>🚀</button>
                 )}
               </div>
             ))}
