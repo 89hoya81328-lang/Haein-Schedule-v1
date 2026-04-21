@@ -117,32 +117,89 @@ const FamilyBoard = () => {
     setMediaIndex(0);
   };
 
+  const compressImage = (file, callback) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_DIMENSION = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height && width > MAX_DIMENSION) {
+          height *= MAX_DIMENSION / width;
+          width = MAX_DIMENSION;
+        } else if (height > MAX_DIMENSION) {
+          width *= MAX_DIMENSION / height;
+          height = MAX_DIMENSION;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert to WebP format with 70% quality to maximize space savings
+        const compressedDataUrl = canvas.toDataURL('image/webp', 0.7);
+        // Estimate size of base64
+        const compressedSize = Math.round((compressedDataUrl.length * 3) / 4);
+        callback(compressedDataUrl, compressedSize);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const isVideo = file.type.startsWith('video/');
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const now = new Date();
-      const pad = n => String(n).padStart(2, '0');
-      const dateStr = `${now.getFullYear().toString().slice(2)}.${pad(now.getMonth()+1)}.${pad(now.getDate())}`;
-      
-      const newMedia = {
-        id: Date.now(),
-        type: isVideo ? 'video' : 'photo',
-        url: reader.result,
-        poster: isVideo ? '' : undefined,
-        caption: `${currentUser}의 업로드`,
-        date: dateStr,
-        size: file.size
+
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const dateStr = `${now.getFullYear().toString().slice(2)}.${pad(now.getMonth()+1)}.${pad(now.getDate())}`;
+
+    if (isVideo) {
+      if (file.size > 50 * 1024 * 1024) {
+        alert('동영상은 최대 50MB까지만 업로드할 수 있습니다.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const newMedia = {
+          id: Date.now(),
+          type: 'video',
+          url: reader.result,
+          poster: '',
+          caption: `${currentUser}의 영상`,
+          date: dateStr,
+          size: file.size
+        };
+        setMedia([newMedia, ...media]);
+        setMediaIndex(0);
+        setShowGallery(false);
       };
-      
-      setMedia([newMedia, ...media]);
-      setMediaIndex(0);
-      setShowGallery(false);
-    };
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+    } else {
+      compressImage(file, (compressedUrl, compressedSize) => {
+        const newMedia = {
+          id: Date.now(),
+          type: 'photo',
+          url: compressedUrl,
+          caption: `${currentUser}의 사진`,
+          date: dateStr,
+          size: compressedSize
+        };
+        setMedia([newMedia, ...media]);
+        setMediaIndex(0);
+        setShowGallery(false);
+      });
+    }
+    
+    // Reset input so the same file can be selected again
+    e.target.value = '';
   };
 
   const currentMedia = media[mediaIndex] || MOCK_MEDIA[0];
