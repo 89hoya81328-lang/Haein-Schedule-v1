@@ -77,7 +77,18 @@ const CALENDAR_MONTHS = [generateMonth(2026, 3), generateMonth(2026, 4), generat
 const Scheduler = () => {
   const { caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker } = useColors('schedule');
   const [weeks, setWeeks] = useState(INITIAL_WEEKS);
-  const [weekIndex, setWeekIndex] = useState(1);
+  const [weekIndex, setWeekIndex] = useState(() => {
+    const today = new Date();
+    const todayDate = today.getDate();
+    const todayMonth = today.getMonth() + 1;
+    const idx = INITIAL_WEEKS.findIndex(w =>
+      w.days.some(d => {
+        const dMonth = (d.date < w.days[0].date && w.monthLabel.includes('5')) ? 5 : w.month;
+        return dMonth === todayMonth && d.date === todayDate;
+      })
+    );
+    return idx >= 0 ? idx : 0;
+  });
   const [dbLoaded, setDbLoaded] = useState(false);
 
   // Load schedules from Supabase on mount
