@@ -1,44 +1,36 @@
-import React, { useState } from 'react';
-import { Send, Heart, Grid, MessageSquare, X, ChevronLeft, ChevronRight, Play, Settings2, Plus, Upload, Pencil, Trash2, Palette, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Send, Heart, Grid, MessageSquare, X, ChevronLeft, ChevronRight, Play, Settings2, Upload, Pencil, Trash2, Check, Loader } from 'lucide-react';
 import { useColors } from '../store/ColorContext';
 import { MemberSettings } from '../components/MemberSettings';
+import { uploadFile, getThumbnailUrl, getOriginalUrl, deleteFiles, fetchMediaList, insertMedia, updateMediaCaption, deleteMediaRows, fetchMessages, insertMessage, updateMessage, deleteMessage } from '../lib/supabase';
 import './FamilyBoard.css';
 
-// type: 'photo' or 'video'
-const MOCK_MEDIA = [
-  { id: 1, type: 'photo', url: 'https://images.unsplash.com/photo-1543335785-84f728fa58fa?auto=format&fit=crop&w=600&q=80', caption: '주말 동물원 나들이', date: '26.04.13', size: 1850000 },
-  { id: 2, type: 'video', url: 'https://www.w3schools.com/html/mov_bbb.mp4', poster: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&w=600&q=80', caption: '어린이집에서 노는 모습 🎬', date: '26.04.11', size: 15400000 },
-  { id: 3, type: 'photo', url: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=600&q=80', caption: '할머니랑 산책', date: '26.04.08', size: 2100000 },
-  { id: 4, type: 'video', url: 'https://www.w3schools.com/html/movie.mp4', poster: 'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=600&q=80', caption: '집에서 춤추는 영상 🎬', date: '26.04.05', size: 12200000 },
-  { id: 5, type: 'photo', url: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&w=600&q=80', caption: '어린이집 첫 등원!', date: '26.04.01', size: 2800000 },
-];
-
-const MOCK_MESSAGES = [
-  { id: 1, author: '아빠', text: '오늘 하원할 때 미술 작품 가져왔어. 냉장고에 붙여놨다!', date: '26.04.15 18:20' },
-  { id: 2, author: '엄마', text: '내일 등원 10분 일찍 해야 해! 사진 찍는 날이래.', date: '26.04.15 13:00' },
-  { id: 3, author: '할머니', text: '할미가 좋아하는 반찬 해놨다. 아빠 퇴근길에 가져가렴~', date: '26.04.14 11:20' },
-  { id: 4, author: '엄마', text: '오늘 등원할 때 해인이가 많이 울었어요 ㅠㅠ', date: '26.04.14 08:30' },
-  { id: 5, author: '아빠', text: '주말에 비온대. 동물원 말고 키즈카페 알아볼게.', date: '26.04.13 21:00' },
-];
-
-// Media renderer (photo or video)
-const MediaItem = ({ item, className }) => {
+const MediaItem = ({ item, className, useThumbnail = false }) => {
+  const src = useThumbnail && item.storage_path ? getThumbnailUrl(item.storage_path, 400) : (item.url || getOriginalUrl(item.storage_path));
   if (item.type === 'video') {
-    return (
-      <video
-        className={className}
-        src={item.url}
-        poster={item.poster}
-        style={{ filter: item.cssFilter || 'none' }}
-        autoPlay
-        muted
-        loop
-        playsInline
-      />
-    );
+    return <video className={className} src={src} poster={item.poster} style={{ filter: item.cssFilter || 'none' }} autoPlay muted loop playsInline />;
   }
-  return <img src={item.url} alt={item.caption} className={className} style={{ filter: item.cssFilter || 'none' }} />;
+  return <img src={src} alt={item.caption} className={className} style={{ filter: item.cssFilter || 'none' }} loading="lazy" />;
 };
+
+const compressImage = (file) => new Promise((resolve) => {
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1200;
+      let w = img.width, h = img.height;
+      if (w > h && w > MAX) { h *= MAX / w; w = MAX; }
+      else if (h > MAX) { w *= MAX / h; h = MAX; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob((blob) => resolve(blob), 'image/webp', 0.7);
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+});
 
 const FamilyBoard = () => {
   const { caretakerEmojis } = useColors();
@@ -46,165 +38,114 @@ const FamilyBoard = () => {
   const [currentUser, setCurrentUser] = useState(authors[0] || '엄마');
   const [showSettings, setShowSettings] = useState(false);
   const [showAuthorSelect, setShowAuthorSelect] = useState(false);
-
-  const [media, setMedia] = useState(MOCK_MEDIA);
-  const [messages, setMessages] = useState(MOCK_MESSAGES);
+  const [media, setMedia] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState('');
   const [mediaIndex, setMediaIndex] = useState(0);
   const [showGallery, setShowGallery] = useState(false);
-  
   const [editingMsgId, setEditingMsgId] = useState(null);
   const [editingMsgText, setEditingMsgText] = useState('');
-  
   const [viewingMedia, setViewingMedia] = useState(null);
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState([]);
   const [editingCaptionId, setEditingCaptionId] = useState(null);
   const [captionText, setCaptionText] = useState('');
-
+  const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const fileInputRef = React.useRef(null);
-
   const getEmoji = (a) => caretakerEmojis[a] || '💬';
 
-  const handleSend = (e) => {
+  // Load data from Supabase on mount
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const [mediaData, msgData] = await Promise.all([fetchMediaList(), fetchMessages()]);
+      setMedia(mediaData || []);
+      setMessages(msgData || []);
+      setLoading(false);
+    })();
+  }, []);
+
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!newMsg.trim()) return;
     const now = new Date();
     const pad = n => String(n).padStart(2, '0');
     const dateStr = `${now.getFullYear().toString().slice(2)}.${pad(now.getMonth()+1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    setMessages([{ id: Date.now(), author: currentUser, text: newMsg, date: dateStr }, ...messages]);
+    const row = { author: currentUser, text: newMsg, date: dateStr };
+    const saved = await insertMessage(row);
+    if (saved) setMessages(prev => [saved, ...prev]);
     setNewMsg('');
   };
 
-  const startEditMsg = (m) => {
-    setEditingMsgId(m.id);
-    setEditingMsgText(m.text);
-  };
+  const startEditMsg = (m) => { setEditingMsgId(m.id); setEditingMsgText(m.text); };
 
-  const saveEditMsg = (id) => {
+  const saveEditMsg = async (id) => {
     if (!editingMsgText.trim()) return;
-    setMessages(prev => prev.map(m => m.id === id ? { ...m, text: editingMsgText } : m));
+    const ok = await updateMessage(id, editingMsgText);
+    if (ok) setMessages(prev => prev.map(m => m.id === id ? { ...m, text: editingMsgText } : m));
     setEditingMsgId(null);
   };
 
-  const deleteMedia = (id) => {
-    const updated = media.filter(m => m.id !== id);
-    if (updated.length === 0) return; // Prevent deleting last for mock safety
-    setMedia(updated);
-    setMediaIndex(i => Math.min(i, updated.length - 1));
+  const handleDeleteMsg = async (id) => {
+    const ok = await deleteMessage(id);
+    if (ok) setMessages(prev => prev.filter(m => m.id !== id));
   };
 
-  const startEditCaption = (m) => {
-    setEditingCaptionId(m.id);
-    setCaptionText(m.caption);
-  };
+  const startEditCaption = (m) => { setEditingCaptionId(m.id); setCaptionText(m.caption); };
 
-  const saveCaption = (id) => {
+  const saveCaption = async (id) => {
     if (!captionText.trim()) { setEditingCaptionId(null); return; }
-    setMedia(prev => prev.map(m => m.id === id ? { ...m, caption: captionText.trim() } : m));
+    const ok = await updateMediaCaption(id, captionText.trim());
+    if (ok) setMedia(prev => prev.map(m => m.id === id ? { ...m, caption: captionText.trim() } : m));
     setEditingCaptionId(null);
   };
 
-  const deleteSelectedMedia = () => {
-    const updated = media.filter(m => !selectedMedia.includes(m.id));
-    if (updated.length === 0) {
-      alert('더 이상 삭제할 수 없습니다.');
-      return; 
-    }
-    setMedia(updated);
+  const deleteSelectedMediaHandler = async () => {
+    if (selectedMedia.length === 0) return;
+    const toDelete = media.filter(m => selectedMedia.includes(m.id));
+    const paths = toDelete.map(m => m.storage_path).filter(Boolean);
+    const ids = toDelete.map(m => m.id);
+    if (paths.length) await deleteFiles(paths);
+    await deleteMediaRows(ids);
+    setMedia(prev => prev.filter(m => !ids.includes(m.id)));
     setSelectedMedia([]);
     setIsSelecting(false);
     setMediaIndex(0);
   };
 
-  const compressImage = (file, callback) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const MAX_DIMENSION = 1200;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height && width > MAX_DIMENSION) {
-          height *= MAX_DIMENSION / width;
-          width = MAX_DIMENSION;
-        } else if (height > MAX_DIMENSION) {
-          width *= MAX_DIMENSION / height;
-          height = MAX_DIMENSION;
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Convert to WebP format with 70% quality to maximize space savings
-        const compressedDataUrl = canvas.toDataURL('image/webp', 0.7);
-        // Estimate size of base64
-        const compressedSize = Math.round((compressedDataUrl.length * 3) / 4);
-        callback(compressedDataUrl, compressedSize);
-      };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const isVideo = file.type.startsWith('video/');
+    if (isVideo && file.size > 50 * 1024 * 1024) { alert('동영상은 최대 50MB까지만 업로드할 수 있습니다.'); return; }
 
+    setUploading(true);
     const now = new Date();
     const pad = n => String(n).padStart(2, '0');
     const dateStr = `${now.getFullYear().toString().slice(2)}.${pad(now.getMonth()+1)}.${pad(now.getDate())}`;
+    const ts = Date.now();
+    const ext = isVideo ? 'mp4' : 'webp';
+    const storagePath = `uploads/${ts}.${ext}`;
 
-    if (isVideo) {
-      if (file.size > 50 * 1024 * 1024) {
-        alert('동영상은 최대 50MB까지만 업로드할 수 있습니다.');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const newMedia = {
-          id: Date.now(),
-          type: 'video',
-          url: reader.result,
-          poster: '',
-          caption: `${currentUser}의 영상`,
-          date: dateStr,
-          size: file.size
-        };
-        setMedia([newMedia, ...media]);
-        setMediaIndex(0);
-        setShowGallery(false);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      compressImage(file, (compressedUrl, compressedSize) => {
-        const newMedia = {
-          id: Date.now(),
-          type: 'photo',
-          url: compressedUrl,
-          caption: `${currentUser}의 사진`,
-          date: dateStr,
-          size: compressedSize
-        };
-        setMedia([newMedia, ...media]);
-        setMediaIndex(0);
-        setShowGallery(false);
-      });
-    }
-    
-    // Reset input so the same file can be selected again
+    let uploadBlob = file;
+    if (!isVideo) uploadBlob = await compressImage(file);
+
+    const publicUrl = await uploadFile(uploadBlob, storagePath);
+    if (!publicUrl) { setUploading(false); alert('업로드 실패. 다시 시도해주세요.'); return; }
+
+    const row = { type: isVideo ? 'video' : 'photo', storage_path: storagePath, url: publicUrl, caption: `${currentUser}의 ${isVideo ? '영상' : '사진'}`, date: dateStr, size: uploadBlob.size || file.size };
+    const saved = await insertMedia(row);
+    if (saved) { setMedia(prev => [saved, ...prev]); setMediaIndex(0); }
+    setUploading(false);
+    setShowGallery(false);
     e.target.value = '';
   };
 
-  const currentMedia = media[mediaIndex] || MOCK_MEDIA[0];
-  const totalMediaBytes = media.reduce((acc, m) => acc + (m.size || 0), 0);
-  const totalMediaMB = (totalMediaBytes / (1024 * 1024)).toFixed(1);
+  const currentMedia = media[mediaIndex] || null;
+  const totalMediaMB = (media.reduce((a, m) => a + (m.size || 0), 0) / (1024 * 1024)).toFixed(1);
+
+  if (loading) return <div className="board-container page-transition" style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'60vh'}}><Loader size={32} className="spin" style={{animation:'spin 1s linear infinite'}}/></div>;
 
   return (
     <div className="board-container page-transition">
@@ -213,15 +154,16 @@ const FamilyBoard = () => {
         <div className="sec-hdr">
           <h2 className="sec-t"><Heart size={16} color="#ff8fa3"/> 해인이 갤러리</h2>
           <div style={{display:'flex', gap:'8px'}}>
-            <button className="viewall-btn" onClick={() => fileInputRef.current?.click()} style={{background: 'var(--text-main)', color: 'white'}}><Upload size={14}/> 업로드</button>
+            <button className="viewall-btn" onClick={() => fileInputRef.current?.click()} style={{background: 'var(--text-main)', color: 'white'}} disabled={uploading}>{uploading ? <Loader size={14} style={{animation:'spin 1s linear infinite'}}/> : <Upload size={14}/>} {uploading ? '업로드 중...' : '업로드'}</button>
             <button className="viewall-btn" onClick={() => setShowGallery(true)}><Grid size={16}/> 전체보기</button>
           </div>
         </div>
+        {media.length > 0 && currentMedia ? (
         <div className="photo-carousel">
           <button className="car-btn" onClick={() => setMediaIndex(i => Math.max(0, i-1))} disabled={mediaIndex===0}><ChevronLeft size={18}/></button>
           <div className="car-body">
             <div className="car-media-wrap" onClick={() => setViewingMedia(currentMedia)} style={{cursor:'pointer', position: 'relative'}}>
-              <MediaItem item={currentMedia} className="car-img" />
+              <MediaItem item={currentMedia} className="car-img" useThumbnail />
               {currentMedia.type === 'video' && <span className="video-badge"><Play size={12}/> 동영상</span>}
             </div>
             <div className="car-meta" style={{display:'flex', flexDirection:'column', gap:'6px'}}>
@@ -238,11 +180,15 @@ const FamilyBoard = () => {
               )}
               <span className="car-date">{currentMedia.date}</span>
             </div>
-            
             <div className="car-dots">{media.map((_,i) => <span key={i} className={`dot ${i===mediaIndex?'active':''}`} onClick={() => setMediaIndex(i)}/>)}</div>
           </div>
           <button className="car-btn" onClick={() => setMediaIndex(i => Math.min(media.length-1, i+1))} disabled={mediaIndex===media.length-1}><ChevronRight size={18}/></button>
         </div>
+        ) : (
+          <div style={{textAlign:'center', padding:'40px 20px', color:'#999'}}>
+            <p>📷 아직 사진이 없어요. 업로드 버튼을 눌러 추가하세요!</p>
+          </div>
+        )}
       </section>
 
       {/* Guestbook */}
@@ -251,7 +197,6 @@ const FamilyBoard = () => {
           <h2 className="sec-t"><MessageSquare size={16}/> 사진/방명록</h2>
           <button className="viewall-btn" onClick={() => setShowSettings(true)}><Settings2 size={16}/> 구성원</button>
         </div>
-
         <div className="msg-feed" style={{ maxHeight: '360px', overflowY: 'auto' }}>
           {messages.map(m => (
             <div key={m.id} className="msg-item">
@@ -261,12 +206,8 @@ const FamilyBoard = () => {
                 <span className="msg-date">{m.date}</span>
                 {m.author === currentUser && editingMsgId !== m.id && (
                   <div style={{marginLeft: 'auto', display:'flex', gap:'6px'}}>
-                    <button onClick={() => startEditMsg(m)} style={{background: 'none', border:'none', color:'#999', cursor:'pointer'}}>
-                      <Pencil size={12}/>
-                    </button>
-                    <button onClick={() => setMessages(prev => prev.filter(msg => msg.id !== m.id))} style={{background: 'none', border:'none', color:'#ff6b6b', cursor:'pointer'}}>
-                      <Trash2 size={12}/>
-                    </button>
+                    <button onClick={() => startEditMsg(m)} style={{background: 'none', border:'none', color:'#999', cursor:'pointer'}}><Pencil size={12}/></button>
+                    <button onClick={() => handleDeleteMsg(m.id)} style={{background: 'none', border:'none', color:'#ff6b6b', cursor:'pointer'}}><Trash2 size={12}/></button>
                   </div>
                 )}
               </div>
@@ -277,30 +218,18 @@ const FamilyBoard = () => {
                     <button onClick={() => saveEditMsg(m.id)} style={{background:'var(--text-main)', color:'white', border:'none', borderRadius:'6px', padding:'0 12px', fontWeight:'700'}}><Check size={14}/></button>
                   </div>
                 ) : (
-                  <div style={{display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden'}}>
-                    {m.text}
-                  </div>
+                  <div style={{display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden'}}>{m.text}</div>
                 )}
               </div>
             </div>
           ))}
         </div>
-
         <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
           <span style={{fontSize: '0.85rem', fontWeight: '800', color: 'var(--text-muted)'}}>현재 작성자:</span>
-          <button 
-            onClick={() => setShowAuthorSelect(true)}
-            style={{
-              background: 'var(--text-main)', color: 'white', border: 'none',
-              padding: '6px 14px', borderRadius: '16px', fontSize: '0.9rem', fontWeight: '800',
-              display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-            }}
-          >
+          <button onClick={() => setShowAuthorSelect(true)} style={{background: 'var(--text-main)', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '16px', fontSize: '0.9rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}>
             {getEmoji(currentUser)} {currentUser}
           </button>
         </div>
-
         <form className="msg-form" onSubmit={handleSend}>
           <input type="text" placeholder={`${currentUser}님, 메모를 남겨주세요...`} value={newMsg} onChange={e => setNewMsg(e.target.value)}/>
           <button type="submit"><Send size={18}/></button>
@@ -310,14 +239,12 @@ const FamilyBoard = () => {
       {/* Fullscreen View Modal */}
       {viewingMedia && (
         <div className="modal-overlay" onClick={() => setViewingMedia(null)} style={{zIndex: 9000, background: 'rgba(0,0,0,0.85)'}}>
-          <button onClick={() => setViewingMedia(null)} style={{position: 'absolute', top: '20px', right: '20px', background:'rgba(255,255,255,0.2)', border:'none', color:'white', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', width:'40px', height:'40px', borderRadius:'50%'}}>
-            <X size={24}/>
-          </button>
+          <button onClick={() => setViewingMedia(null)} style={{position: 'absolute', top: '20px', right: '20px', background:'rgba(255,255,255,0.2)', border:'none', color:'white', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', width:'40px', height:'40px', borderRadius:'50%', zIndex: 9001}}><X size={24}/></button>
           <div onClick={e => e.stopPropagation()} style={{display:'flex', width:'100%', height:'100%', alignItems:'center', justifyContent:'center', padding:'20px'}}>
             {viewingMedia.type === 'video' ? (
-              <video src={viewingMedia.url} style={{maxWidth:'100%', maxHeight:'90vh', borderRadius:'12px', boxShadow:'0 8px 30px rgba(0,0,0,0.3)'}} controls autoPlay playsInline/>
+              <video src={viewingMedia.url || getOriginalUrl(viewingMedia.storage_path)} style={{maxWidth:'100%', maxHeight:'90vh', borderRadius:'12px', boxShadow:'0 8px 30px rgba(0,0,0,0.3)'}} controls autoPlay playsInline/>
             ) : (
-              <img src={viewingMedia.url} style={{maxWidth:'100%', maxHeight:'90vh', objectFit:'contain', borderRadius:'12px', boxShadow:'0 8px 30px rgba(0,0,0,0.3)'}}/>
+              <img src={viewingMedia.url || getOriginalUrl(viewingMedia.storage_path)} style={{maxWidth:'100%', maxHeight:'90vh', objectFit:'contain', borderRadius:'12px', boxShadow:'0 8px 30px rgba(0,0,0,0.3)'}}/>
             )}
           </div>
         </div>
@@ -330,30 +257,21 @@ const FamilyBoard = () => {
             <div className="gal-head">
               <span>📷 전체 미디어 <span style={{fontSize: '0.8rem', color: '#666'}}>({totalMediaMB} MB)</span></span>
               <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
-                {selectedMedia.length > 0 && <button onClick={deleteSelectedMedia} style={{background:'#fff0f0', color:'#ff3b3b', border:'1px solid #ffebeb', borderRadius:'14px', padding:'6px 10px', fontSize:'0.8rem', fontWeight:'900', cursor:'pointer'}}><Trash2 size={12}/> 삭제 ({selectedMedia.length})</button>}
+                {selectedMedia.length > 0 && <button onClick={deleteSelectedMediaHandler} style={{background:'#fff0f0', color:'#ff3b3b', border:'1px solid #ffebeb', borderRadius:'14px', padding:'6px 10px', fontSize:'0.8rem', fontWeight:'900', cursor:'pointer'}}><Trash2 size={12}/> 삭제 ({selectedMedia.length})</button>}
                 <button onClick={() => { setIsSelecting(!isSelecting); setSelectedMedia([]); }} style={{background: isSelecting ? 'var(--text-main)' : '#f0f0f0', color: isSelecting ? 'white' : '#333', border:'none', borderRadius:'14px', padding:'6px 12px', fontSize:'0.85rem', fontWeight:'900', cursor:'pointer'}}>{isSelecting ? '취소' : '선택'}</button>
                 <button onClick={() => { setShowGallery(false); setIsSelecting(false); setSelectedMedia([]); }} style={{background:'none', border:'none'}}><X size={22}/></button>
               </div>
             </div>
             <div className="gal-grid">
-              {media.map((m,i) => {
+              {media.map((m) => {
                 const isSelected = selectedMedia.includes(m.id);
+                const thumbSrc = m.storage_path ? getThumbnailUrl(m.storage_path, 300) : (m.poster || m.url);
                 return (
                 <div key={m.id} className="gal-thumb" onClick={() => {
-                  if (isSelecting) {
-                    setSelectedMedia(prev => isSelected ? prev.filter(id => id !== m.id) : [...prev, m.id]);
-                  } else {
-                    setViewingMedia(m); 
-                  }
+                  if (isSelecting) setSelectedMedia(prev => isSelected ? prev.filter(id => id !== m.id) : [...prev, m.id]);
+                  else setViewingMedia(m);
                 }} style={{opacity: isSelecting && !isSelected ? 0.6 : 1, transition:'all 0.2s', position:'relative'}}>
-                  {m.type === 'video' ? (
-                    <>
-                      <img src={m.poster || m.url} alt={m.caption}/>
-                      <span className="gal-video-icon"><Play size={20}/></span>
-                    </>
-                  ) : (
-                    <img src={m.url} alt={m.caption}/>
-                  )}
+                  {m.type === 'video' ? (<><img src={thumbSrc} alt={m.caption}/><span className="gal-video-icon"><Play size={20}/></span></>) : (<img src={thumbSrc} alt={m.caption}/>)}
                   <div className="gal-info"><span>{m.caption}</span><span className="gal-sm-date">{m.date}</span></div>
                   {isSelecting && (
                     <div style={{position:'absolute', top:'6px', right:'6px', background: isSelected ? 'var(--text-main)' : 'rgba(255,255,255,0.8)', border: isSelected ? 'none' : '2px solid #ddd', width:'24px', height:'24px', borderRadius:'6px', display:'flex', alignItems:'center', justifyContent:'center', zIndex: 2}}>
@@ -362,9 +280,7 @@ const FamilyBoard = () => {
                   )}
                 </div>
               )})}
-              <div className="gal-thumb gal-add" onClick={() => fileInputRef.current?.click()} style={{cursor:'pointer'}}>
-                <span>+ 사진 업로드</span>
-              </div>
+              <div className="gal-thumb gal-add" onClick={() => fileInputRef.current?.click()} style={{cursor:'pointer'}}><span>+ 사진 업로드</span></div>
             </div>
           </div>
         </div>
@@ -380,18 +296,8 @@ const FamilyBoard = () => {
             </div>
             <div style={{display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto', paddingBottom: '10px', scrollbarWidth: 'none'}}>
               {authors.map(a => (
-                <button
-                  key={a}
-                  onClick={() => { setCurrentUser(a); setShowAuthorSelect(false); }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 20px',
-                    borderRadius: '20px', border: 'none',
-                    background: a === currentUser ? '#f8e8ea' : '#fff',
-                    color: a === currentUser ? 'var(--text-main)' : '#333',
-                    fontWeight: a === currentUser ? '900' : '700',
-                    fontSize: '1.05rem', cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s',
-                    boxShadow: a === currentUser ? '0 0 0 2px var(--text-main)' : '0 4px 12px rgba(0,0,0,0.03)'
-                  }}
+                <button key={a} onClick={() => { setCurrentUser(a); setShowAuthorSelect(false); }}
+                  style={{display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 20px', borderRadius: '20px', border: 'none', background: a === currentUser ? '#f8e8ea' : '#fff', color: a === currentUser ? 'var(--text-main)' : '#333', fontWeight: a === currentUser ? '900' : '700', fontSize: '1.05rem', cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s', boxShadow: a === currentUser ? '0 0 0 2px var(--text-main)' : '0 4px 12px rgba(0,0,0,0.03)'}}
                   onPointerDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
                   onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
                   onPointerLeave={e => e.currentTarget.style.transform = 'scale(1)'}
@@ -407,8 +313,8 @@ const FamilyBoard = () => {
       )}
 
       {showSettings && <MemberSettings onClose={() => setShowSettings(false)} />}
-      
       <input type="file" ref={fileInputRef} style={{display:'none'}} accept="image/*,video/*" onChange={handleFileUpload} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

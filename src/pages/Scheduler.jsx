@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useColors } from '../store/ColorContext';
 import { Settings2, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, Plus, Check } from 'lucide-react';
 import { MemberSettings } from '../components/MemberSettings';
+import { fetchSchedules, upsertSchedule } from '../lib/supabase';
 import './Scheduler.css';
 
 const INITIAL_WEEKS = [
@@ -77,6 +78,45 @@ const Scheduler = () => {
   const { caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker } = useColors('schedule');
   const [weeks, setWeeks] = useState(INITIAL_WEEKS);
   const [weekIndex, setWeekIndex] = useState(1);
+  const [dbLoaded, setDbLoaded] = useState(false);
+
+  // Load schedules from Supabase on mount
+  useEffect(() => {
+    (async () => {
+      const rows = await fetchSchedules();
+      if (rows && rows.length > 0) {
+        const newWeeks = [...INITIAL_WEEKS].map(w => ({ ...w, days: w.days.map(d => ({ ...d })) }));
+        rows.forEach(r => {
+          const wIdx = newWeeks.findIndex(w => w.weekId === r.week_id);
+          if (wIdx >= 0 && r.day_index >= 0 && r.day_index < newWeeks[wIdx].days.length) {
+            const d = newWeeks[wIdx].days[r.day_index];
+            if (r.drop_person) d.drop = r.drop_person;
+            if (r.pick_person) d.pick = r.pick_person;
+            if (r.family !== undefined && r.family !== null) d.family = r.family;
+            if (r.notes && r.notes.length) d.notes = r.notes;
+          }
+        });
+        setWeeks(newWeeks);
+      }
+      setDbLoaded(true);
+    })();
+  }, []);
+
+  // Helper to persist a single day to Supabase
+  const persistDay = useCallback(async (weekId, dayIndex, dayData) => {
+    await upsertSchedule({
+      week_id: weekId,
+      day_index: dayIndex,
+      date: dayData.date,
+      day: dayData.day,
+      is_weekend: dayData.isWeekend,
+      holiday: dayData.holiday || '',
+      drop_person: dayData.drop || '',
+      pick_person: dayData.pick || '',
+      family: dayData.family || '',
+      notes: dayData.notes || [],
+    });
+  }, []);
   const [showSettings, setShowSettings] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [picker, setPicker] = useState(null); // { dayIdx, type }
@@ -102,6 +142,8 @@ const Scheduler = () => {
       })};
     });
     setWeeks(newWeeks);
+    const updatedDay = newWeeks[weekIndex].days[editNote.dayIdx];
+    persistDay(newWeeks[weekIndex].weekId, editNote.dayIdx, updatedDay);
     setEditNote(null);
   };
 
@@ -119,6 +161,8 @@ const Scheduler = () => {
       })};
     });
     setWeeks(newWeeks);
+    const updatedDay = newWeeks[weekIndex].days[editFamily.dayIdx];
+    persistDay(newWeeks[weekIndex].weekId, editFamily.dayIdx, updatedDay);
     setEditFamily(null);
   };
 
@@ -136,6 +180,8 @@ const Scheduler = () => {
       })};
     });
     setWeeks(newWeeks);
+    const updatedDay = newWeeks[weekIndex].days[picker.dayIdx];
+    persistDay(newWeeks[weekIndex].weekId, picker.dayIdx, updatedDay);
     setPicker(null);
   };
 
