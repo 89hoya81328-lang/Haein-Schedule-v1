@@ -122,50 +122,85 @@ export const ColorProvider = ({ children }) => {
   let allAuthors = order.filter(k => currentKeys.includes(k));
   currentKeys.forEach(k => { if (!allAuthors.includes(k)) allAuthors.push(k); });
 
+  const needsProfileSelect = loaded && allAuthors.length > 0 && (!currentUser || !allAuthors.includes(currentUser));
+  const isProfileChanged = currentUser && !allAuthors.includes(currentUser);
+
+  // Circle Layout Math
+  const CIRCLE_RADIUS = 110;
+
   return (
     <ColorContext.Provider value={getContextValue}>
       {children}
       
-      {/* 본인 인증 (최초 1회 접속 시) */}
-      {!currentUser && loaded && allAuthors.length > 0 && (
+      {/* 본인 인증 (최초 1회 접속 또는 프로필 삭제/변경 시) */}
+      {needsProfileSelect && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.8)', zIndex: 99999,
+          background: 'rgba(0,0,0,0.85)', zIndex: 99999,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '20px'
         }}>
           <div style={{
-            background: 'white', padding: '30px', borderRadius: '24px',
-            width: '100%', maxWidth: '360px', textAlign: 'center',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+            background: 'white', padding: '40px 20px', borderRadius: '24px',
+            width: '100%', maxWidth: '380px', textAlign: 'center',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative'
           }}>
             <div style={{fontSize: '3rem', marginBottom: '10px'}}>👋</div>
-            <h2 style={{margin: '0 0 10px', fontSize: '1.4rem'}}>환영합니다!</h2>
-            <p style={{color: '#666', margin: '0 0 24px', fontSize: '0.95rem', lineHeight: 1.5}}>
-              원활한 가족 소통을 위해<br/><b>본인의 프로필</b>을 먼저 선택해 주세요.<br/>
-              <span style={{fontSize: '0.8rem', color: '#999'}}>(이후 내 이름이 항상 맨 위에 고정됩니다)</span>
+            <h2 style={{margin: '0 0 10px', fontSize: '1.4rem'}}>
+              {isProfileChanged ? '프로필이 변경되었습니다' : '환영합니다!'}
+            </h2>
+            <p style={{color: '#666', margin: '0 0 40px', fontSize: '0.95rem', lineHeight: 1.5}}>
+              {isProfileChanged ? (
+                <>기존에 선택하셨던 역할 이름이 수정되거나 삭제되었습니다.<br/><b>다시 본인의 역할을 선택해 주세요.</b></>
+              ) : (
+                <>원활한 가족 소통을 위해<br/><b>본인의 프로필</b>을 먼저 선택해 주세요.</>
+              )}
             </p>
             
-            <div style={{display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '40vh', overflowY: 'auto'}}>
-              {allAuthors.map(author => (
-                <button
-                  key={author}
-                  onClick={() => handleSetCurrentUser(author)}
-                  style={{
-                    padding: '16px', borderRadius: '16px', border: '1px solid #eee',
-                    background: '#f8f9fa', fontSize: '1.1rem', fontWeight: 'bold',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px',
-                    transition: 'all 0.2s', flexShrink: 0
-                  }}
-                >
-                  <span style={{fontSize: '1.5rem'}}>{emojis[author]}</span>
-                  <span>{author}</span>
-                </button>
-              ))}
+            <div style={{
+              position: 'relative', width: `${CIRCLE_RADIUS*2 + 80}px`, height: `${CIRCLE_RADIUS*2 + 80}px`, 
+              margin: '0 auto'
+            }}>
+              {allAuthors.map((author, i) => {
+                const angle = (i * 360) / allAuthors.length;
+                const rad = angle * Math.PI / 180;
+                const x = Math.sin(rad) * CIRCLE_RADIUS;
+                const y = -Math.cos(rad) * CIRCLE_RADIUS;
+                
+                return (
+                  <button
+                    key={author}
+                    onClick={() => handleSetCurrentUser(author)}
+                    style={{
+                      position: 'absolute', top: '50%', left: '50%',
+                      transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
+                      width: '76px', height: '76px', borderRadius: '50%', border: 'none',
+                      background: colors[author] || '#f8f9fa',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+                      transition: 'transform 0.2s', padding: '0'
+                    }}
+                    onPointerDown={e => e.currentTarget.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(0.9)`}
+                    onPointerUp={e => e.currentTarget.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(1)`}
+                    onPointerLeave={e => e.currentTarget.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(1)`}
+                  >
+                    <span style={{fontSize: '1.8rem', marginBottom: '2px'}}>{emojis[author]}</span>
+                    <span style={{fontSize: '0.75rem', fontWeight: 'bold', color: '#333', background: 'rgba(255,255,255,0.7)', padding: '2px 6px', borderRadius: '10px'}}>{author}</span>
+                  </button>
+                );
+              })}
+              
+              <div style={{
+                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                color: '#aaa', fontSize: '0.85rem', textAlign: 'center', width: '100px'
+              }}>
+                동등한 우리 가족<br/>둥글게 둥글게!
+              </div>
             </div>
           </div>
         </div>
       )}
+            
     </ColorContext.Provider>
   );
 };

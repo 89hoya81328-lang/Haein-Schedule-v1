@@ -96,130 +96,98 @@ const EmojiPickerModal = ({ currentEmoji, onSelect, onClose }) => {
   );
 };
 
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+const EditMemberModal = ({ author, emoji, color, onSave, onRemove, onSetAsProfile, onEmojiClick, onClose }) => {
+  const [editingName, setEditingName] = useState(author);
+  const [editingColor, setEditingColor] = useState(color);
 
-const SortableItem = ({ id, p, editingAuthor, editingName, setEditingName, saveEdit, removeCaretaker, startEdit, setPickingFor, caretakerEmojis, caretakerColors, updateColor }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    display: 'flex', justifyContent: 'space-between', marginBottom: '12px', alignItems: 'center',
-    background: 'white', padding: '8px 12px', borderRadius: '12px', border: '1px solid #eee',
-    zIndex: isDragging ? 999 : 'auto',
-    position: 'relative'
+  const handleSave = () => {
+    if (!editingName.trim()) return;
+    onSave(author, editingName.trim(), editingColor);
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="color-row">
-      <div {...attributes} {...listeners} style={{display:'flex', alignItems:'center', color:'#ccc', marginRight:'12px', cursor:'grab', touchAction: 'none'}}>
-        <GripVertical size={20}/>
-      </div>
-      {editingAuthor === p ? (
-        <div style={{display:'flex', gap:'8px', flex:1, marginRight:'12px'}}>
-          <input 
-            type="text" 
-            value={editingName} 
-            onChange={(e) => setEditingName(e.target.value)} 
-            style={{flex:1, padding:'6px 10px', borderRadius:'8px', border:'1px solid #ddd', minWidth: '0'}}
-            autoFocus
-          />
-          <button onClick={() => saveEdit(p)} style={{background:'var(--text-main)', color:'white', border:'none', borderRadius:'8px', padding:'0 10px', cursor:'pointer', flexShrink: 0}}><Check size={16}/></button>
-          <button onClick={() => removeCaretaker(p)} style={{background:'#fff5f5', color:'#e74c3c', border:'none', borderRadius:'8px', padding:'0 10px', cursor:'pointer', flexShrink: 0}}><Trash2 size={16}/></button>
+    <div className="modal-overlay" onClick={onClose} style={{zIndex: 9995, background: 'rgba(0,0,0,0.6)'}}>
+      <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{padding: '24px', maxWidth: '340px', margin: 'auto', borderRadius: '24px'}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center'}}>
+          <h4 style={{margin: 0, fontSize: '1.2rem', fontWeight: '900'}}>{author} 수정</h4>
+          <button onClick={onClose} style={{background: '#f0f0f0', border: 'none', cursor: 'pointer', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><X size={18}/></button>
         </div>
-      ) : (
-        <span className="p-name" style={{fontWeight: '700', cursor:'pointer', flex:1, padding: '8px 0'}} onClick={() => startEdit(p)}>{p}</span>
-      )}
-      
-      <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
-        <button 
-          onClick={() => setPickingFor(p)}
-          style={{
-            width: '40px', height: '40px', fontSize: '1.2rem', 
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: '1px solid #ddd', borderRadius: '10px', background: '#fff', cursor: 'pointer',
-            flexShrink: 0
-          }}
-        >
-          {caretakerEmojis[p]}
-        </button>
-        <input type="color" className="color-input" value={caretakerColors[p]} onChange={e => updateColor(p, e.target.value)} style={{width: '40px', height: '40px', border: 'none', borderRadius: '10px', cursor: 'pointer', padding: 0, flexShrink: 0}} />
+        
+        <div style={{display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px'}}>
+          <button 
+            onClick={onEmojiClick}
+            style={{
+              width: '50px', height: '50px', fontSize: '1.5rem', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '1px solid #ddd', borderRadius: '16px', background: '#fff', cursor: 'pointer',
+              flexShrink: 0
+            }}
+          >
+            {emoji}
+          </button>
+          <div style={{flex: 1}}>
+            <input 
+              type="text" 
+              value={editingName} 
+              onChange={(e) => setEditingName(e.target.value)} 
+              style={{width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #ddd', fontSize: '1.05rem'}}
+            />
+          </div>
+          <input 
+            type="color" 
+            value={editingColor} 
+            onChange={e => setEditingColor(e.target.value)} 
+            style={{width: '50px', height: '50px', border: 'none', borderRadius: '16px', cursor: 'pointer', padding: 0, flexShrink: 0}} 
+          />
+        </div>
+
+        <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+          <button onClick={handleSave} style={{width: '100%', padding: '14px', borderRadius: '14px', border: 'none', background: 'var(--text-main)', color: 'white', fontWeight: 'bold', fontSize: '1.05rem', cursor: 'pointer'}}>
+            저장
+          </button>
+          <button 
+            onClick={() => { onSetAsProfile(author); onClose(); }} 
+            style={{width: '100%', padding: '14px', borderRadius: '14px', border: '2px solid var(--text-main)', background: '#fff', color: 'var(--text-main)', fontWeight: 'bold', fontSize: '1.05rem', cursor: 'pointer'}}
+          >
+            이 프로필을 내 역할로 설정
+          </button>
+          <button 
+            onClick={() => { onRemove(author); onClose(); }} 
+            style={{width: '100%', padding: '14px', borderRadius: '14px', border: 'none', background: '#fff5f5', color: '#e74c3c', fontWeight: 'bold', fontSize: '1.05rem', cursor: 'pointer'}}
+          >
+            삭제
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
-export const MemberSettings = ({ onClose, type = 'board' }) => {
-  const { caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker, removeCaretaker, renameCaretaker, reorderCaretakers, resetCurrentUser } = useColors();
-  const authors = Object.keys(caretakerEmojis);
-  const [newName, setNewName] = useState('');
+export const MemberSettings = ({ onClose }) => {
+  const { caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker, removeCaretaker, renameCaretaker, setCurrentUser, authors } = useColors();
   const [pickingFor, setPickingFor] = useState(null);
-  
   const [editingAuthor, setEditingAuthor] = useState(null);
-  const [editingName, setEditingName] = useState('');
+  const [addingNew, setAddingNew] = useState(false);
+  const [newName, setNewName] = useState('');
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      const oldIndex = authors.indexOf(active.id);
-      const newIndex = authors.indexOf(over.id);
-      reorderCaretakers(oldIndex, newIndex);
-    }
-  };
+  const CIRCLE_RADIUS = 110;
 
   const handleAddPerson = (e) => {
     e.preventDefault();
     if (!newName.trim()) return;
     addCaretaker(newName.trim());
     setNewName('');
+    setAddingNew(false);
   };
 
-  const startEdit = (author) => {
-    setEditingAuthor(author);
-    setEditingName(author);
-  };
-
-  const saveEdit = (author) => {
-    if (editingName.trim() && editingName !== author) {
-      renameCaretaker(author, editingName.trim());
+  const handleSaveEdit = (author, newNameVal, newColor) => {
+    if (newColor !== caretakerColors[author]) {
+      updateColor(author, newColor);
+    }
+    if (newNameVal !== author) {
+      renameCaretaker(author, newNameVal);
     }
     setEditingAuthor(null);
-  };
-
-  const handleClose = () => {
-    if (newName.trim()) {
-      addCaretaker(newName.trim());
-      setNewName('');
-    }
-    onClose();
   };
 
   return (
@@ -229,50 +197,82 @@ export const MemberSettings = ({ onClose, type = 'board' }) => {
           <span>구성원 관리</span>
           <button onClick={onClose}><X size={20}/></button>
         </div>
-        <div className="settings-body" style={{padding: '20px'}}>
-          <section className="settings-section">
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={authors} strategy={verticalListSortingStrategy}>
-                {authors.map((p) => (
-                  <SortableItem 
-                    key={p} id={p} p={p} 
-                    editingAuthor={editingAuthor} 
-                    editingName={editingName} 
-                    setEditingName={setEditingName}
-                    saveEdit={saveEdit}
-                    removeCaretaker={removeCaretaker}
-                    startEdit={startEdit}
-                    setPickingFor={setPickingFor}
-                    caretakerEmojis={caretakerEmojis}
-                    caretakerColors={caretakerColors}
-                    updateColor={updateColor}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
-            <form className="add-p-form" onSubmit={handleAddPerson} style={{display: 'flex', gap: '8px', marginTop: '20px'}}>
-              <input type="text" placeholder="새 이름..." value={newName} onChange={e => setNewName(e.target.value)} style={{flex: 1, padding: '12px 14px', borderRadius: '12px', border: '1px solid #ddd'}}/>
-            </form>
-          </section>
-
-          <section className="settings-section" style={{marginTop: '30px', borderTop: '1px solid #eee', paddingTop: '20px'}}>
-            <h4 style={{margin: '0 0 10px', fontSize: '1rem', color: '#666'}}>기기 설정</h4>
-            <button 
-              onClick={() => {
-                resetCurrentUser();
-                onClose();
-              }}
+        
+        <div className="settings-body" style={{padding: '30px 20px', minHeight: '340px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+          <div style={{
+            position: 'relative', width: `${CIRCLE_RADIUS*2 + 80}px`, height: `${CIRCLE_RADIUS*2 + 80}px`, 
+            margin: '0 auto'
+          }}>
+            {authors.map((author, i) => {
+              const angle = (i * 360) / authors.length;
+              const rad = angle * Math.PI / 180;
+              const x = Math.sin(rad) * CIRCLE_RADIUS;
+              const y = -Math.cos(rad) * CIRCLE_RADIUS;
+              
+              return (
+                <button
+                  key={author}
+                  onClick={() => setEditingAuthor(author)}
+                  style={{
+                    position: 'absolute', top: '50%', left: '50%',
+                    transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
+                    width: '76px', height: '76px', borderRadius: '50%', border: 'none',
+                    background: caretakerColors[author] || '#f8f9fa',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+                    transition: 'transform 0.2s', padding: '0', zIndex: 2
+                  }}
+                  onPointerDown={e => e.currentTarget.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(0.9)`}
+                  onPointerUp={e => e.currentTarget.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(1)`}
+                  onPointerLeave={e => e.currentTarget.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(1)`}
+                >
+                  <span style={{fontSize: '1.8rem', marginBottom: '2px'}}>{caretakerEmojis[author]}</span>
+                  <span style={{fontSize: '0.75rem', fontWeight: 'bold', color: '#333', background: 'rgba(255,255,255,0.7)', padding: '2px 6px', borderRadius: '10px'}}>{author}</span>
+                </button>
+              );
+            })}
+            
+            <button
+              onClick={() => setAddingNew(true)}
               style={{
-                width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #ffcfdf',
-                background: '#fff5f5', color: '#e74c3c', fontWeight: 'bold', cursor: 'pointer'
+                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                width: '60px', height: '60px', borderRadius: '50%', border: '2px dashed #ccc',
+                background: '#fff', color: '#aaa', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', transition: 'all 0.2s', zIndex: 1
               }}
             >
-              내 프로필 다시 선택하기
+              <Plus size={24}/>
             </button>
-          </section>
+          </div>
         </div>
-        <button className="close-btn" onClick={handleClose} style={{width: 'calc(100% - 40px)', margin: '0 20px 20px', padding: '16px', background: 'var(--text-main)', color: 'white', borderRadius: '14px', fontWeight: '800'}}>완료</button>
+
+        <button className="close-btn" onClick={onClose} style={{width: 'calc(100% - 40px)', margin: '0 20px 20px', padding: '16px', background: 'var(--text-main)', color: 'white', borderRadius: '14px', fontWeight: '800'}}>닫기</button>
       </div>
+
+      {editingAuthor && (
+        <EditMemberModal
+          author={editingAuthor}
+          emoji={caretakerEmojis[editingAuthor]}
+          color={caretakerColors[editingAuthor]}
+          onSave={handleSaveEdit}
+          onRemove={removeCaretaker}
+          onSetAsProfile={setCurrentUser}
+          onEmojiClick={() => setPickingFor(editingAuthor)}
+          onClose={() => setEditingAuthor(null)}
+        />
+      )}
+
+      {addingNew && (
+        <div className="modal-overlay" onClick={() => setAddingNew(false)} style={{zIndex: 9995, background: 'rgba(0,0,0,0.6)'}}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{padding: '24px', maxWidth: '340px', margin: 'auto', borderRadius: '24px'}}>
+            <h4 style={{margin: '0 0 16px', fontSize: '1.2rem', fontWeight: '900'}}>새 구성원 추가</h4>
+            <form onSubmit={handleAddPerson} style={{display: 'flex', gap: '8px'}}>
+              <input type="text" placeholder="이름 (예: 삼촌)" value={newName} onChange={e => setNewName(e.target.value)} style={{flex: 1, padding: '12px 14px', borderRadius: '12px', border: '1px solid #ddd'}} autoFocus />
+              <button type="submit" style={{background: 'var(--text-main)', color: 'white', border: 'none', borderRadius: '12px', padding: '0 16px', cursor: 'pointer', fontWeight: 'bold'}}>추가</button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {pickingFor && (
         <EmojiPickerModal 
