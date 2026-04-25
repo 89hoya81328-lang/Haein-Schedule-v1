@@ -192,9 +192,11 @@ export const ColorProvider = ({ children }) => {
               
               <div style={{
                 position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                color: '#aaa', fontSize: '0.85rem', textAlign: 'center', width: '100px'
+                textAlign: 'center', width: '100px', display: 'flex', flexDirection: 'column', alignItems: 'center'
               }}>
-                동등한 우리 가족<br/>둥글게 둥글게!
+                <span style={{fontSize: '1.2rem', marginBottom: '4px'}}>✨</span>
+                <span style={{fontWeight: '900', fontSize: '1.2rem', color: 'var(--text-main)', letterSpacing: '2px'}}>최해인</span>
+                <span style={{fontSize: '1.2rem', marginTop: '4px'}}>✨</span>
               </div>
             </div>
           </div>

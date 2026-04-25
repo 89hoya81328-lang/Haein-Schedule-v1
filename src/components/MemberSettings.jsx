@@ -232,21 +232,26 @@ export const MemberSettings = ({ onClose }) => {
               );
             })}
             
-            <button
-              onClick={() => setAddingNew(true)}
-              style={{
-                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                width: '60px', height: '60px', borderRadius: '50%', border: '2px dashed #ccc',
-                background: '#fff', color: '#aaa', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', transition: 'all 0.2s', zIndex: 1
-              }}
-            >
-              <Plus size={24}/>
-            </button>
+            <div style={{
+              position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+              textAlign: 'center', width: '100px', display: 'flex', flexDirection: 'column', alignItems: 'center'
+            }}>
+              <span style={{fontSize: '1.2rem', marginBottom: '4px'}}>✨</span>
+              <span style={{fontWeight: '900', fontSize: '1.2rem', color: 'var(--text-main)', letterSpacing: '2px'}}>최해인</span>
+              <span style={{fontSize: '1.2rem', marginTop: '4px'}}>✨</span>
+            </div>
           </div>
         </div>
 
-        <button className="close-btn" onClick={onClose} style={{width: 'calc(100% - 40px)', margin: '0 20px 20px', padding: '16px', background: 'var(--text-main)', color: 'white', borderRadius: '14px', fontWeight: '800'}}>닫기</button>
+        <div style={{display: 'flex', gap: '10px', margin: '0 20px 20px'}}>
+          <button 
+            onClick={() => setAddingNew(true)} 
+            style={{flex: 1, padding: '16px', background: '#fff', color: 'var(--text-main)', border: '2px dashed var(--text-main)', borderRadius: '14px', fontWeight: '800', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer'}}
+          >
+            <Plus size={20}/> 새 가족 추가
+          </button>
+          <button className="close-btn" onClick={onClose} style={{flex: 1, padding: '16px', background: 'var(--text-main)', color: 'white', borderRadius: '14px', fontWeight: '800', border: 'none', cursor: 'pointer'}}>닫기</button>
+        </div>
       </div>
 
       {editingAuthor && (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Send, Heart, Grid, MessageSquare, X, ChevronLeft, ChevronRight, Play, Settings2, Upload, Pencil, Trash2, Check, Loader } from 'lucide-react';
 import { useColors } from '../store/ColorContext';
 import { MemberSettings } from '../components/MemberSettings';
@@ -53,6 +53,53 @@ const FamilyBoard = () => {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const fileInputRef = React.useRef(null);
+  
+  // Touch Handlers for Photo Swipe
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+
+  const handleTouchStart = (e) => {
+    if (e.touches.length > 1) return;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEndFullscreen = (e) => {
+    if (touchStartX.current === null || touchStartY.current === null || !viewingMedia) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      const idx = media.findIndex(m => m.id === viewingMedia.id);
+      if (idx !== -1) {
+        if (dx < 0 && idx < media.length - 1) {
+          setViewingMedia(media[idx + 1]);
+        } else if (dx > 0 && idx > 0) {
+          setViewingMedia(media[idx - 1]);
+        }
+      }
+      e.stopPropagation();
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
+
+  const handleTouchEndCarousel = (e) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0 && mediaIndex < media.length - 1) {
+        setMediaIndex(prev => prev + 1);
+      } else if (dx > 0 && mediaIndex > 0) {
+        setMediaIndex(prev => Math.max(0, prev - 1));
+      }
+      e.stopPropagation();
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
   const getEmoji = (a) => caretakerEmojis[a] || '💬';
 
   useEffect(() => {
@@ -191,7 +238,7 @@ const FamilyBoard = () => {
           </div>
         </div>
         {media.length > 0 && currentMedia ? (
-        <div className="photo-carousel">
+        <div className="photo-carousel" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEndCarousel}>
           <button className="car-btn" onClick={() => setMediaIndex(i => Math.max(0, i-1))} disabled={mediaIndex===0}><ChevronLeft size={18}/></button>
           <div className="car-body">
             <div className="car-media-wrap" onClick={() => setViewingMedia(currentMedia)} style={{cursor:'pointer', position: 'relative'}}>
@@ -239,7 +286,7 @@ const FamilyBoard = () => {
                 {m.author === currentUser && editingMsgId !== m.id && (
                   <div style={{marginLeft: 'auto', display:'flex', gap:'6px'}}>
                     <button onClick={() => startEditMsg(m)} style={{background: 'none', border:'none', color:'#999', cursor:'pointer'}}><Pencil size={12}/></button>
-                    <button onClick={() => handleDeleteMsg(m.id)} style={{background: 'none', border:'none', color:'#ff6b6b', cursor:'pointer'}}><Trash2 size={12}/></button>
+                    <button onClick={() => handleDeleteMessage(m.id)} style={{background: 'none', border:'none', color:'#ff6b6b', cursor:'pointer'}}><Trash2 size={12}/></button>
                   </div>
                 )}
               </div>
@@ -268,9 +315,10 @@ const FamilyBoard = () => {
         </form>
       </section>
 
+
       {/* Fullscreen View Modal */}
       {viewingMedia && (
-        <div className="modal-overlay" onClick={() => setViewingMedia(null)} style={{zIndex: 9000, background: 'rgba(0,0,0,0.85)'}}>
+        <div className="modal-overlay" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEndFullscreen} onClick={() => setViewingMedia(null)} style={{zIndex: 9000, background: 'rgba(0,0,0,0.85)'}}>
           <button onClick={() => setViewingMedia(null)} style={{position: 'absolute', top: '20px', right: '20px', background:'rgba(255,255,255,0.2)', border:'none', color:'white', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', width:'40px', height:'40px', borderRadius:'50%', zIndex: 9001}}><X size={24}/></button>
           <div onClick={e => e.stopPropagation()} style={{display:'flex', width:'100%', height:'100%', alignItems:'center', justifyContent:'center', padding:'20px'}}>
             {viewingMedia.type === 'video' ? (
@@ -281,8 +329,6 @@ const FamilyBoard = () => {
           </div>
         </div>
       )}
-
-      {/* Gallery Modal */}
       {showGallery && (
         <div className="gal-overlay" onClick={() => setShowGallery(false)}>
           <div className="gal-modal" onClick={e => e.stopPropagation()}>
