@@ -4,26 +4,20 @@ import { supabase, fetchSettings, upsertSettings } from '../lib/supabase';
 const ColorContext = createContext();
 
 export const ColorProvider = ({ children }) => {
-  const [boardColors, setBoardColors] = useState({ 아빠: '#b5c0d0', 엄마: '#ffcfdf', 할머니: '#d5ebd1' });
-  const [boardEmojis, setBoardEmojis] = useState({ 아빠: '⭐', 엄마: '🌸', 할머니: '🍀' });
-  const [schedColors, setSchedColors] = useState({ 아빠: '#b5c0d0', 엄마: '#ffcfdf', 할머니: '#d5ebd1' });
-  const [schedEmojis, setSchedEmojis] = useState({ 아빠: '⭐', 엄마: '🌸', 할머니: '🍀' });
+  const [colors, setColors] = useState({ 아빠: '#b5c0d0', 엄마: '#ffcfdf', 할머니: '#d5ebd1' });
+  const [emojis, setEmojis] = useState({ 아빠: '⭐', 엄마: '🌸', 할머니: '🍀' });
   const [loaded, setLoaded] = useState(false);
   const [currentUser, setCurrentUser] = useState(localStorage.getItem('haein_current_user') || null);
   const [newProfileName, setNewProfileName] = useState('');
 
   useEffect(() => {
     const loadSettings = async () => {
-      const [bc, be, sc, se] = await Promise.all([
-        fetchSettings('boardColors'),
-        fetchSettings('boardEmojis'),
-        fetchSettings('schedColors'),
-        fetchSettings('schedEmojis')
+      const [c, e] = await Promise.all([
+        fetchSettings('memberColors'),
+        fetchSettings('memberEmojis')
       ]);
-      if (bc) setBoardColors(bc);
-      if (be) setBoardEmojis(be);
-      if (sc) setSchedColors(sc);
-      if (se) setSchedEmojis(se);
+      if (c) setColors(c);
+      if (e) setEmojis(e);
       setLoaded(true);
     };
 
@@ -49,14 +43,12 @@ export const ColorProvider = ({ children }) => {
     localStorage.setItem('haein_current_user', name);
   };
 
-  const getContextValue = (type) => {
-    const isSched = type === 'schedule';
-    const setColors = isSched ? setSchedColors : setBoardColors;
-    const setEmojis = isSched ? setSchedEmojis : setBoardEmojis;
-    const colors = isSched ? schedColors : boardColors;
-    const emojis = isSched ? schedEmojis : boardEmojis;
-    const keyPrefix = isSched ? 'sched' : 'board';
+  const resetCurrentUser = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('haein_current_user');
+  };
 
+  const getContextValue = () => {
     // 현재 사용자를 맨 앞으로 끌어올린 배열 생성
     let baseAuthors = Object.keys(emojis);
     if (currentUser && baseAuthors.includes(currentUser)) {
@@ -69,25 +61,33 @@ export const ColorProvider = ({ children }) => {
       authors: baseAuthors,
       currentUser,
       setCurrentUser: handleSetCurrentUser,
+      resetCurrentUser,
       updateColor: (name, color) => {
-        setColors(prev => { const n = {...prev, [name]: color}; saveSettings(`${keyPrefix}Colors`, n); return n; });
+        setColors(prev => { const n = {...prev, [name]: color}; saveSettings('memberColors', n); return n; });
       },
       updateEmoji: (name, emoji) => {
-        setEmojis(prev => { const n = {...prev, [name]: emoji}; saveSettings(`${keyPrefix}Emojis`, n); return n; });
+        setEmojis(prev => { const n = {...prev, [name]: emoji}; saveSettings('memberEmojis', n); return n; });
       },
       addCaretaker: (name) => {
-        if (!name.trim()) return;
-        setColors(prev => { const n = {...prev, [name]: '#f0f0f0'}; saveSettings(`${keyPrefix}Colors`, n); return n; });
-        setEmojis(prev => { const n = {...prev, [name]: '💬'}; saveSettings(`${keyPrefix}Emojis`, n); return n; });
+        if (!colors[name]) {
+          setColors(prev => { const n = {...prev, [name]: '#e0e0e0'}; saveSettings('memberColors', n); return n; });
+          setEmojis(prev => { const n = {...prev, [name]: '👤'}; saveSettings('memberEmojis', n); return n; });
+        }
       },
       removeCaretaker: (name) => {
-        setColors(prev => { const n = {...prev}; delete n[name]; saveSettings(`${keyPrefix}Colors`, n); return n; });
-        setEmojis(prev => { const n = {...prev}; delete n[name]; saveSettings(`${keyPrefix}Emojis`, n); return n; });
+        setColors(prev => { const n = {...prev}; delete n[name]; saveSettings('memberColors', n); return n; });
+        setEmojis(prev => { const n = {...prev}; delete n[name]; saveSettings('memberEmojis', n); return n; });
       },
       renameCaretaker: (oldName, newName) => {
-        if (!newName.trim() || oldName === newName) return;
-        setColors(prev => { const n = {...prev}; n[newName] = n[oldName]; delete n[oldName]; saveSettings(`${keyPrefix}Colors`, n); return n; });
-        setEmojis(prev => { const n = {...prev}; n[newName] = n[oldName]; delete n[oldName]; saveSettings(`${keyPrefix}Emojis`, n); return n; });
+        setColors(prev => {
+          const n = {...prev}; n[newName] = n[oldName]; delete n[oldName];
+          saveSettings('memberColors', n); return n;
+        });
+        setEmojis(prev => {
+          const n = {...prev}; n[newName] = n[oldName]; delete n[oldName];
+          saveSettings('memberEmojis', n); return n;
+        });
+        if (currentUser === oldName) handleSetCurrentUser(newName);
       },
       reorderCaretakers: (sourceIndex, destIndex) => {
         setColors(prev => {
@@ -95,7 +95,7 @@ export const ColorProvider = ({ children }) => {
           const [moved] = keys.splice(sourceIndex, 1);
           keys.splice(destIndex, 0, moved);
           const next = {}; keys.forEach(k => next[k] = prev[k]);
-          saveSettings(`${keyPrefix}Colors`, next);
+          saveSettings('memberColors', next);
           return next;
         });
         setEmojis(prev => {
@@ -103,7 +103,7 @@ export const ColorProvider = ({ children }) => {
           const [moved] = keys.splice(sourceIndex, 1);
           keys.splice(destIndex, 0, moved);
           const next = {}; keys.forEach(k => next[k] = prev[k]);
-          saveSettings(`${keyPrefix}Emojis`, next);
+          saveSettings('memberEmojis', next);
           return next;
         });
       }
@@ -148,7 +148,7 @@ export const ColorProvider = ({ children }) => {
                     transition: 'all 0.2s', flexShrink: 0
                   }}
                 >
-                  <span style={{fontSize: '1.5rem'}}>{boardEmojis[author]}</span>
+                  <span style={{fontSize: '1.5rem'}}>{emojis[author]}</span>
                   <span>{author}</span>
                 </button>
               ))}
@@ -160,7 +160,7 @@ export const ColorProvider = ({ children }) => {
   );
 };
 
-export const useColors = (type = 'board') => {
+export const useColors = () => {
   const factory = useContext(ColorContext);
-  return factory(type);
+  return factory();
 };

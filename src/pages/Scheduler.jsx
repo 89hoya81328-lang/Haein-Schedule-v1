@@ -86,7 +86,7 @@ const CALENDAR_MONTHS = Array.from({ length: 6 }, (_, i) => {
 });
 
 const Scheduler = () => {
-  const { caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker } = useColors('schedule');
+  const { caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker, authors } = useColors();
   const [weeks, setWeeks] = useState(INITIAL_WEEKS);
   const [weekIndex, setWeekIndex] = useState(() => {
     const today = new Date();
@@ -156,7 +156,7 @@ const Scheduler = () => {
   const [editNote, setEditNote] = useState(null); // { dayIdx, text }
   const [editFamily, setEditFamily] = useState(null); // { dayIdx, text }
 
-  const caretakers = Object.keys(caretakerColors);
+  const caretakers = authors;
   const week = weeks[weekIndex];
   const getColor = (person) => caretakerColors[person] || '#f0f0f0';
 
