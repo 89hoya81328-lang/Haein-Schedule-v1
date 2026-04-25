@@ -52,7 +52,7 @@ const FamilyBoard = () => {
   const [captionText, setCaptionText] = useState('');
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
-  const fileInputRef = React.useRef(null);
+  const fileInputRef = useRef(null);
   
   // Touch Handlers for Photo Swipe
   const touchStartX = useRef(null);

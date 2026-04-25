@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Trash2, Check, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { useColors } from '../store/ColorContext';
 
 const EMOJI_CATEGORIES = [
@@ -152,7 +152,7 @@ const EditMemberModal = ({ author, emoji, color, onSave, onRemove, onSetAsProfil
             이 프로필을 내 역할로 설정
           </button>
           <button 
-            onClick={() => { onRemove(author); onClose(); }} 
+            onClick={() => { if (window.confirm(`정말 "${author}"을(를) 삭제하시겠습니까?`)) { onRemove(author); onClose(); } }} 
             style={{width: '100%', padding: '14px', borderRadius: '14px', border: 'none', background: '#fff5f5', color: '#e74c3c', fontWeight: 'bold', fontSize: '1.05rem', cursor: 'pointer'}}
           >
             삭제
