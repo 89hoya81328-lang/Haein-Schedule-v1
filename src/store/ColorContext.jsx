@@ -6,18 +6,24 @@ const ColorContext = createContext();
 export const ColorProvider = ({ children }) => {
   const [colors, setColors] = useState({ 아빠: '#b5c0d0', 엄마: '#ffcfdf', 할머니: '#d5ebd1' });
   const [emojis, setEmojis] = useState({ 아빠: '⭐', 엄마: '🌸', 할머니: '🍀' });
+  const [order, setOrder] = useState(['아빠', '엄마', '할머니']);
   const [loaded, setLoaded] = useState(false);
   const [currentUser, setCurrentUser] = useState(localStorage.getItem('haein_current_user') || null);
-  const [newProfileName, setNewProfileName] = useState('');
 
   useEffect(() => {
     const loadSettings = async () => {
-      const [c, e] = await Promise.all([
+      const [c, e, o] = await Promise.all([
         fetchSettings('memberColors'),
-        fetchSettings('memberEmojis')
+        fetchSettings('memberEmojis'),
+        fetchSettings('memberOrder')
       ]);
       if (c) setColors(c);
       if (e) setEmojis(e);
+      if (o && Array.isArray(o)) {
+        setOrder(o);
+      } else if (c) {
+        setOrder(Object.keys(c)); // Fallback
+      }
       setLoaded(true);
     };
 
@@ -49,8 +55,13 @@ export const ColorProvider = ({ children }) => {
   };
 
   const getContextValue = () => {
+    // Sync order with colors if new ones exist
+    const currentKeys = Object.keys(colors);
+    let validOrder = order.filter(k => currentKeys.includes(k));
+    currentKeys.forEach(k => { if (!validOrder.includes(k)) validOrder.push(k); });
+
     // 현재 사용자를 맨 앞으로 끌어올린 배열 생성
-    let baseAuthors = Object.keys(emojis);
+    let baseAuthors = [...validOrder];
     if (currentUser && baseAuthors.includes(currentUser)) {
       baseAuthors = [currentUser, ...baseAuthors.filter(a => a !== currentUser)];
     }
@@ -72,11 +83,13 @@ export const ColorProvider = ({ children }) => {
         if (!colors[name]) {
           setColors(prev => { const n = {...prev, [name]: '#e0e0e0'}; saveSettings('memberColors', n); return n; });
           setEmojis(prev => { const n = {...prev, [name]: '👤'}; saveSettings('memberEmojis', n); return n; });
+          setOrder(prev => { const o = [...prev, name]; saveSettings('memberOrder', o); return o; });
         }
       },
       removeCaretaker: (name) => {
         setColors(prev => { const n = {...prev}; delete n[name]; saveSettings('memberColors', n); return n; });
         setEmojis(prev => { const n = {...prev}; delete n[name]; saveSettings('memberEmojis', n); return n; });
+        setOrder(prev => { const o = prev.filter(k => k !== name); saveSettings('memberOrder', o); return o; });
       },
       renameCaretaker: (oldName, newName) => {
         setColors(prev => {
@@ -87,30 +100,27 @@ export const ColorProvider = ({ children }) => {
           const n = {...prev}; n[newName] = n[oldName]; delete n[oldName];
           saveSettings('memberEmojis', n); return n;
         });
+        setOrder(prev => {
+          const o = prev.map(k => k === oldName ? newName : k);
+          saveSettings('memberOrder', o); return o;
+        });
         if (currentUser === oldName) handleSetCurrentUser(newName);
       },
       reorderCaretakers: (sourceIndex, destIndex) => {
-        setColors(prev => {
-          const keys = Object.keys(prev);
-          const [moved] = keys.splice(sourceIndex, 1);
-          keys.splice(destIndex, 0, moved);
-          const next = {}; keys.forEach(k => next[k] = prev[k]);
-          saveSettings('memberColors', next);
-          return next;
-        });
-        setEmojis(prev => {
-          const keys = Object.keys(prev);
-          const [moved] = keys.splice(sourceIndex, 1);
-          keys.splice(destIndex, 0, moved);
-          const next = {}; keys.forEach(k => next[k] = prev[k]);
-          saveSettings('memberEmojis', next);
+        setOrder(prev => {
+          const next = [...prev];
+          const [moved] = next.splice(sourceIndex, 1);
+          next.splice(destIndex, 0, moved);
+          saveSettings('memberOrder', next);
           return next;
         });
       }
     };
   };
 
-  const allAuthors = Object.keys(emojis);
+  const currentKeys = Object.keys(colors);
+  let allAuthors = order.filter(k => currentKeys.includes(k));
+  currentKeys.forEach(k => { if (!allAuthors.includes(k)) allAuthors.push(k); });
 
   return (
     <ColorContext.Provider value={getContextValue}>
