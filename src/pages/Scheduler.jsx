@@ -2,59 +2,64 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useColors } from '../store/ColorContext';
 import { Settings2, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, Plus, Check } from 'lucide-react';
 import { MemberSettings } from '../components/MemberSettings';
-import { fetchSchedules, upsertSchedule } from '../lib/supabase';
+import { supabase, fetchSchedules, upsertSchedule } from '../lib/supabase';
 import './Scheduler.css';
 
-const INITIAL_WEEKS = [
-  {
-    weekId: 'w0', label: '지난 주', monthLabel: '4월', month: 4,
-    days: [
-      { date: 6, day: '월', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: [] },
-      { date: 7, day: '화', isWeekend: false, holiday: '', drop: '엄마', pick: '할머니', notes: [] },
-      { date: 8, day: '수', isWeekend: false, holiday: '', drop: '할머니', pick: '아빠', notes: [] },
-      { date: 9, day: '목', isWeekend: false, holiday: '', drop: '엄마', pick: '엄마', notes: [] },
-      { date: 10, day: '금', isWeekend: false, holiday: '', drop: '아빠', pick: '할머니', notes: [] },
-      { date: 11, day: '토', isWeekend: true, holiday: '', family: '집콕 휴식', notes: [] },
-      { date: 12, day: '일', isWeekend: true, holiday: '', family: '마트 장보기', notes: [] },
-    ]
-  },
-  {
-    weekId: 'w1', label: '이번 주', monthLabel: '4월', month: 4,
-    days: [
-      { date: 13, day: '월', isWeekend: false, holiday: '', drop: '엄마', pick: '아빠', notes: [] },
-      { date: 14, day: '화', isWeekend: false, holiday: '', drop: '아빠', pick: '할머니', notes: [] },
-      { date: 15, day: '수', isWeekend: false, holiday: '', drop: '엄마', pick: '엄마', notes: [] },
-      { date: 16, day: '목', isWeekend: false, holiday: '', drop: '할머니', pick: '아빠', notes: [] },
-      { date: 17, day: '금', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: [] },
-      { date: 18, day: '토', isWeekend: true, holiday: '', family: '할아버지 댁 방문', notes: [] },
-      { date: 19, day: '일', isWeekend: true, holiday: '', family: '동물원 나들이', notes: [] },
-    ]
-  },
-  {
-    weekId: 'w2', label: '다음 주', monthLabel: '4월', month: 4,
-    days: [
-      { date: 20, day: '월', isWeekend: false, holiday: '', drop: '엄마', pick: '아빠', notes: [] },
-      { date: 21, day: '화', isWeekend: false, holiday: '', drop: '할머니', pick: '할머니', notes: [] },
-      { date: 22, day: '수', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: [] },
-      { date: 23, day: '목', isWeekend: false, holiday: '', drop: '엄마', pick: '할머니', notes: [] },
-      { date: 24, day: '금', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: [] },
-      { date: 25, day: '토', isWeekend: true, holiday: '', family: '집콕 휴식', notes: [] },
-      { date: 26, day: '일', isWeekend: true, holiday: '', family: '마트 장보기', notes: [] },
-    ]
-  },
-  {
-    weekId: 'w3', label: '3주 후', monthLabel: '4~5월', month: 4,
-    days: [
-      { date: 27, day: '월', isWeekend: false, holiday: '', drop: '아빠', pick: '엄마', notes: [] },
-      { date: 28, day: '화', isWeekend: false, holiday: '', drop: '엄마', pick: '할머니', notes: [] },
-      { date: 29, day: '수', isWeekend: false, holiday: '', drop: '할머니', pick: '아빠', notes: [] },
-      { date: 30, day: '목', isWeekend: false, holiday: '', drop: '엄마', pick: '엄마', notes: [] },
-      { date: 1, day: '금', isWeekend: false, holiday: '', drop: '아빠', pick: '할머니', notes: [] },
-      { date: 2, day: '토', isWeekend: true, holiday: '', family: '근교 나들이', notes: [] },
-      { date: 3, day: '일', isWeekend: true, holiday: '', family: '가족 모임', notes: [] },
-    ]
+const generateDynamicWeeks = (numWeeks = 26) => {
+  const weeks = [];
+  const today = new Date();
+  const currentDay = today.getDay();
+  const diff = today.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
+  let startOfWeek = new Date(today.getFullYear(), today.getMonth(), diff);
+
+  const HOLIDAYS = { '01-01': '신정', '02-16': '설날', '02-17': '설날', '02-18': '설날', '03-01': '삼일절', '05-05': '어린이날', '05-24': '부처님오신날', '05-25': '대체공휴일', '06-06': '현충일', '08-15': '광복절', '09-24': '추석', '09-25': '추석', '09-26': '추석', '10-03': '개천절', '10-09': '한글날', '12-25': '크리스마스' };
+
+  for (let i = 0; i < numWeeks; i++) {
+    const days = [];
+    let weekMonth = startOfWeek.getMonth() + 1;
+    let endMonth = weekMonth;
+
+    for (let j = 0; j < 7; j++) {
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + j);
+      const m = d.getMonth() + 1;
+      const date = d.getDate();
+      const dow = d.getDay();
+      const isWeekend = dow === 0 || dow === 6;
+      const key = `${String(m).padStart(2,'0')}-${String(date).padStart(2,'0')}`;
+      
+      if (j === 6) endMonth = m;
+
+      days.push({
+        date: date,
+        day: ['일','월','화','수','목','금','토'][dow],
+        isWeekend,
+        holiday: HOLIDAYS[key] || '',
+        drop: '', pick: '', family: '', notes: []
+      });
+    }
+
+    let label = `${i}주 후`;
+    if (i === 0) label = '이번 주';
+    if (i === 1) label = '다음 주';
+
+    const monthLabel = weekMonth === endMonth ? `${weekMonth}월` : `${weekMonth}~${endMonth}월`;
+    const yyyy = startOfWeek.getFullYear();
+    const mm = String(startOfWeek.getMonth() + 1).padStart(2, '0');
+    const dd = String(startOfWeek.getDate()).padStart(2, '0');
+
+    weeks.push({
+      weekId: `w_${yyyy}${mm}${dd}`,
+      label,
+      monthLabel,
+      month: weekMonth,
+      days
+    });
+
+    startOfWeek.setDate(startOfWeek.getDate() + 7);
   }
-];
+  return weeks;
+};
 
 function generateMonth(year, month) {
   const HOLIDAYS = { '01-01': '신정', '02-16': '설날', '02-17': '설날', '02-18': '설날', '03-01': '삼일절', '05-05': '어린이날', '05-24': '부처님오신날', '05-25': '대체공휴일', '06-06': '현충일', '08-15': '광복절', '09-24': '추석', '09-25': '추석', '09-26': '추석', '10-03': '개천절', '10-09': '한글날', '12-25': '크리스마스' };
@@ -72,7 +77,13 @@ function generateMonth(year, month) {
   };
 }
 
-const CALENDAR_MONTHS = [generateMonth(2026, 3), generateMonth(2026, 4), generateMonth(2026, 5), generateMonth(2026, 6)];
+const INITIAL_WEEKS = generateDynamicWeeks(26); // 6 months
+
+const CALENDAR_MONTHS = Array.from({ length: 6 }, (_, i) => {
+  const d = new Date();
+  d.setMonth(d.getMonth() + i);
+  return generateMonth(d.getFullYear(), d.getMonth() + 1);
+});
 
 const Scheduler = () => {
   const { caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker } = useColors('schedule');
@@ -91,9 +102,8 @@ const Scheduler = () => {
   });
   const [dbLoaded, setDbLoaded] = useState(false);
 
-  // Load schedules from Supabase on mount
   useEffect(() => {
-    (async () => {
+    const loadSchedules = async () => {
       const rows = await fetchSchedules();
       if (rows && rows.length > 0) {
         const newWeeks = [...INITIAL_WEEKS].map(w => ({ ...w, days: w.days.map(d => ({ ...d })) }));
@@ -110,7 +120,19 @@ const Scheduler = () => {
         setWeeks(newWeeks);
       }
       setDbLoaded(true);
-    })();
+    };
+
+    loadSchedules();
+
+    const channel = supabase.channel('realtime_schedules')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules' }, () => {
+        loadSchedules();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Helper to persist a single day to Supabase

@@ -218,3 +218,73 @@ export async function deleteMessage(id) {
   if (error) console.error('메시지 삭제 실패:', error);
   return !error;
 }
+
+// ========== 쇼핑 리스트 ==========
+export async function fetchShoppingItems() {
+  const { data, error } = await supabase.from('shopping_items').select('*').order('created_at', { ascending: true });
+  if (error) { console.error('쇼핑 로드 실패:', error); return []; }
+  return data;
+}
+
+export async function upsertShoppingItem(row) {
+  const { data, error } = await supabase.from('shopping_items').upsert(row).select().single();
+  if (error) { console.error('쇼핑 아이템 저장 실패:', error); return null; }
+  return data;
+}
+
+export async function deleteShoppingItem(id) {
+  const { error } = await supabase.from('shopping_items').delete().eq('id', id);
+  if (error) console.error('쇼핑 삭제 실패:', error);
+  return !error;
+}
+
+// ========== 육아 가이드 ==========
+export async function fetchGuides() {
+  const { data, error } = await supabase.from('guide_sections').select('*').order('sort_order', { ascending: true });
+  if (error) { console.error('가이드 로드 실패:', error); return []; }
+  return data;
+}
+
+export async function upsertGuide(row) {
+  const { data, error } = await supabase.from('guide_sections').upsert(row).select().single();
+  if (error) { console.error('가이드 저장 실패:', error); return null; }
+  return data;
+}
+
+export async function deleteGuide(id) {
+  const { error } = await supabase.from('guide_sections').delete().eq('id', id);
+  if (error) console.error('가이드 삭제 실패:', error);
+  return !error;
+}
+
+// ========== 앱 설정 (구성원 등) ==========
+export async function fetchSettings(key) {
+  const { data, error } = await supabase.from('app_settings').select('value').eq('key', key).single();
+  if (error && error.code !== 'PGRST116') { console.error('설정 로드 실패:', error); return null; }
+  return data ? data.value : null;
+}
+
+export async function upsertSettings(key, value) {
+  const { error } = await supabase.from('app_settings').upsert({ key, value });
+  if (error) console.error('설정 저장 실패:', error);
+  return !error;
+}
+
+// ========== 실시간 동기화 (Realtime) ==========
+export function subscribeToTable(tableName, onUpdate) {
+  const channel = supabase
+    .channel(`realtime_${tableName}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: tableName },
+      (payload) => onUpdate(payload)
+    )
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log(`${tableName} 실시간 구독 성공`);
+      }
+    });
+  return channel;
+}
+
+

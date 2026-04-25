@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Pencil, Check, Plus, Trash2, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Pencil, Check, Plus, Trash2, X, Loader } from 'lucide-react';
+import { supabase, fetchGuides, upsertGuide, deleteGuide, fetchSettings, upsertSettings } from '../lib/supabase';
 import './HaeinReadme.css';
 
 const formatDateTime = () => {
@@ -10,56 +11,10 @@ const formatDateTime = () => {
 
 const SECTION_COLORS = ['#f5f0ff', '#f0f8f4', '#f0f5ff', '#fff5f5'];
 
-const INITIAL_SECTIONS = [
-  {
-    id: 1,
-    title: '🌟 요즘 최애 관심사',
-    items: [
-      '뽀로로 시대는 갔습니다. 무조건 티니핑 (그중에서도 하츄핑)',
-      '잠들기 전 꼭 읽어야 하는 책: "달님 안녕"',
-    ],
-    updatedAt: '26.04.14 09:30',
-    bgColor: SECTION_COLORS[0],
-  },
-  {
-    id: 2,
-    title: '🍴 식사 & 간식 매뉴얼',
-    items: [
-      '파란색 숟가락으로 주면 밥 투정이 50% 감소합니다.',
-      '간식 빈도: 하원 후 1회, 저녁 식사 전까지.',
-      '당근은 아주 잘게 다져야 먹습니다 (편식 주의).',
-    ],
-    updatedAt: '26.04.13 21:00',
-    bgColor: SECTION_COLORS[1],
-  },
-  {
-    id: 3,
-    title: '🌙 수면 프로토콜',
-    items: [
-      '취침 시간: 21:00 딱 맞춰서 불 끄기',
-      '잠자리 유튜브: 지브리 오르골 자장가 재생',
-      '토끼 인형이 침대에 있는지 확인 필수!',
-    ],
-    updatedAt: '26.04.12 08:00',
-    bgColor: SECTION_COLORS[2],
-  },
-  {
-    id: 4,
-    title: '⚠️ 현재 HOTFIX',
-    items: [
-      '아침/저녁 일교차로 콧물 조금 있음. 외출 시 얇은 카디건 챙겨주세요.',
-      '병원은 아직 안 가도 될 수준.',
-    ],
-    updatedAt: '26.04.14 19:45',
-    isWarning: true,
-    bgColor: SECTION_COLORS[3],
-  },
-];
-
 const ReadmeSection = ({ section, onSave, onDelete }) => {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(section.title);
-  const [items, setItems] = useState([...section.items]);
+  const [items, setItems] = useState([...(section.items || [])]);
   const [newItem, setNewItem] = useState('');
   const [hovered, setHovered] = useState(false);
 
@@ -81,8 +36,8 @@ const ReadmeSection = ({ section, onSave, onDelete }) => {
 
   return (
     <div
-      className={`readme-section ${section.isWarning ? 'warning-section' : ''}`}
-      style={{ backgroundColor: section.bgColor || '#fff' }}
+      className={`readme-section ${section.is_warning ? 'warning-section' : ''}`}
+      style={{ backgroundColor: section.bg_color || '#fff' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -99,7 +54,7 @@ const ReadmeSection = ({ section, onSave, onDelete }) => {
         )}
 
         <div className="section-header-actions">
-          <span className="updated-at">{section.updatedAt}</span>
+          <span className="updated-at">{section.updated_at}</span>
           {(hovered || editing) && !editing && (
             <button className="edit-icon-btn" onClick={() => setEditing(true)}>
               <Pencil size={14} />
@@ -154,32 +109,88 @@ const ReadmeSection = ({ section, onSave, onDelete }) => {
 };
 
 const HaeinReadme = () => {
-  const [sections, setSections] = useState(INITIAL_SECTIONS);
+  const [sections, setSections] = useState([]);
   const [showAddSection, setShowAddSection] = useState(false);
   const [newSectionTitle, setNewSectionTitle] = useState('');
   const [mainTitle, setMainTitle] = useState('해인이 쑥쑥 가이드 🍼');
   const [editingMainTitle, setEditingMainTitle] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const handleSave = (id, title, items) => {
-    setSections(secs => secs.map(s =>
-      s.id === id ? { ...s, title, items, updatedAt: formatDateTime() } : s
-    ));
+  useEffect(() => {
+    const loadGuides = async () => {
+      setLoading(true);
+      const [guides, title] = await Promise.all([
+        fetchGuides(),
+        fetchSettings('haein_readme_title')
+      ]);
+      setSections(guides || []);
+      if (title) setMainTitle(title);
+      setLoading(false);
+    };
+
+    loadGuides();
+
+    const channelGuides = supabase.channel('realtime_guides')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'guide_sections' }, async () => {
+        const guides = await fetchGuides();
+        setSections(guides || []);
+      })
+      .subscribe();
+
+    const channelSettings = supabase.channel('realtime_settings_readme')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, async (payload) => {
+        if (payload.new && payload.new.key === 'haein_readme_title') {
+          setMainTitle(payload.new.value);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channelGuides);
+      supabase.removeChannel(channelSettings);
+    };
+  }, []);
+
+  const handleSaveMainTitle = async () => {
+    await upsertSettings('haein_readme_title', mainTitle);
+    setEditingMainTitle(false);
   };
 
-  const handleDelete = (id) => {
+  const handleSave = async (id, title, items) => {
+    const updatedAt = formatDateTime();
+    const sectionToUpdate = sections.find(s => s.id === id);
+    if (!sectionToUpdate) return;
+    const updated = { ...sectionToUpdate, title, items, updated_at: updatedAt };
+    
+    // Optimistic UI
+    setSections(secs => secs.map(s => s.id === id ? updated : s));
+    
+    // DB Save
+    await upsertGuide(updated);
+  };
+
+  const handleDelete = async (id) => {
     setSections(secs => secs.filter(s => s.id !== id));
+    await deleteGuide(id);
   };
 
-  const handleAddSection = (e) => {
+  const handleAddSection = async (e) => {
     e.preventDefault();
     if (!newSectionTitle.trim()) return;
-    setSections(prev => [...prev, {
-      id: Date.now(),
+    
+    const newSection = {
       title: newSectionTitle,
       items: [],
-      updatedAt: formatDateTime(),
-      bgColor: SECTION_COLORS[prev.length % SECTION_COLORS.length],
-    }]);
+      updated_at: formatDateTime(),
+      bg_color: SECTION_COLORS[sections.length % SECTION_COLORS.length],
+      sort_order: sections.length
+    };
+    
+    const saved = await upsertGuide(newSection);
+    if (saved) {
+      setSections(prev => [...prev, saved]);
+    }
+    
     setNewSectionTitle('');
     setShowAddSection(false);
   };
@@ -197,7 +208,7 @@ const HaeinReadme = () => {
                 style={{fontSize:'1.5rem', fontWeight:'800', border:'1px solid #ddd', borderRadius:'8px', padding:'4px 8px', flex:1}}
                 autoFocus
               />
-              <button className="save-icon-btn" onClick={() => setEditingMainTitle(false)}><Check size={18} /></button>
+              <button className="save-icon-btn" onClick={handleSaveMainTitle}><Check size={18} /></button>
             </div>
           ) : (
             <>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Send, Heart, Grid, MessageSquare, X, ChevronLeft, ChevronRight, Play, Settings2, Upload, Pencil, Trash2, Check, Loader } from 'lucide-react';
 import { useColors } from '../store/ColorContext';
 import { MemberSettings } from '../components/MemberSettings';
-import { uploadFile, getThumbnailUrl, getOriginalUrl, deleteFiles, fetchMediaList, insertMedia, updateMediaCaption, deleteMediaRows, fetchMessages, insertMessage, updateMessage, deleteMessage } from '../lib/supabase';
+import { supabase, uploadFile, getThumbnailUrl, getOriginalUrl, deleteFiles, fetchMediaList, insertMedia, updateMediaCaption, deleteMediaRows, fetchMessages, insertMessage, updateMessage, deleteMessage } from '../lib/supabase';
 import './FamilyBoard.css';
 
 const MediaItem = ({ item, className, useThumbnail = false }) => {
@@ -55,15 +55,35 @@ const FamilyBoard = () => {
   const fileInputRef = React.useRef(null);
   const getEmoji = (a) => caretakerEmojis[a] || '💬';
 
-  // Load data from Supabase on mount
   useEffect(() => {
-    (async () => {
+    const loadBoardData = async () => {
       setLoading(true);
       const [mediaData, msgData] = await Promise.all([fetchMediaList(), fetchMessages()]);
       setMedia(mediaData || []);
       setMessages(msgData || []);
       setLoading(false);
-    })();
+    };
+
+    loadBoardData();
+
+    const channelMedia = supabase.channel('realtime_media')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'media' }, async () => {
+        const mediaData = await fetchMediaList();
+        setMedia(mediaData || []);
+      })
+      .subscribe();
+
+    const channelMessages = supabase.channel('realtime_messages')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, async () => {
+        const msgData = await fetchMessages();
+        setMessages(msgData || []);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channelMedia);
+      supabase.removeChannel(channelMessages);
+    };
   }, []);
 
   const handleSend = async (e) => {

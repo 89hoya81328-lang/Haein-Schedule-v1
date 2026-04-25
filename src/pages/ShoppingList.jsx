@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Apple, Baby, Plus, Trash2, X, Rocket } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Apple, Baby, Plus, Trash2, X, Rocket, Loader } from 'lucide-react';
+import { supabase, fetchShoppingItems, upsertShoppingItem, deleteShoppingItem } from '../lib/supabase';
 import './ShoppingList.css';
 
 const AddItemModal = ({ isOpen, onClose, onAdd, title }) => {
@@ -41,42 +42,79 @@ const AddItemModal = ({ isOpen, onClose, onAdd, title }) => {
 };
 
 const ShoppingList = () => {
-  const [groceries, setGroceries] = useState([
-    { id: 1, text: '우유 2팩', checked: false, isCoupang: false },
-    { id: 2, text: '바나나 1송이', checked: true, isCoupang: false },
-    { id: 3, text: '아기 김', checked: false, isCoupang: true },
-    { id: 4, text: '두부', checked: false, isCoupang: false },
-  ]);
-
-  const [supplies, setSupplies] = useState([
-    { id: 10, text: '기저귀 (특대형)', checked: false, isCoupang: true },
-    { id: 11, text: '물티슈', checked: true, isCoupang: true },
-    { id: 12, text: '아기 로션', checked: false, isCoupang: false },
-  ]);
+  const [groceries, setGroceries] = useState([]);
+  const [supplies, setSupplies] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState('g');
   const [modalOpen, setModalOpen] = useState(null);
 
-  const toggle = (id, type) => {
+  useEffect(() => {
+    const loadItems = async () => {
+      setLoading(true);
+      const items = await fetchShoppingItems();
+      setGroceries(items.filter(i => i.type === 'g'));
+      setSupplies(items.filter(i => i.type === 's'));
+      setLoading(false);
+    };
+    
+    loadItems();
+
+    const channel = supabase.channel('realtime_shopping_items')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_items' }, async () => {
+        // 데이터가 변경되면 최신 데이터를 다시 불러옴
+        const items = await fetchShoppingItems();
+        setGroceries(items.filter(i => i.type === 'g'));
+        setSupplies(items.filter(i => i.type === 's'));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const toggle = async (id, type) => {
     const s = type === 'g' ? setGroceries : setSupplies;
+    const list = type === 'g' ? groceries : supplies;
+    const item = list.find(i => i.id === id);
+    if (!item) return;
+    
+    // Optimistic UI update
     s(l => l.map(i => i.id === id ? { ...i, checked: !i.checked } : i));
+    
+    await upsertShoppingItem({ id, checked: !item.checked });
   };
 
-  const clear = (type) => {
+  const clear = async (type) => {
     const s = type === 'g' ? setGroceries : setSupplies;
+    const list = type === 'g' ? groceries : supplies;
+    const doneItems = list.filter(i => i.checked);
+    
     s(l => l.filter(i => !i.checked));
+    
+    for (const item of doneItems) {
+      await deleteShoppingItem(item.id);
+    }
   };
 
-  const toggleCoupang = (id, type) => {
+  const toggleCoupang = async (id, type) => {
     const s = type === 'g' ? setGroceries : setSupplies;
-    s(l => l.map(i => i.id === id ? { ...i, isCoupang: !i.isCoupang } : i));
+    const list = type === 'g' ? groceries : supplies;
+    const item = list.find(i => i.id === id);
+    if (!item) return;
+
+    s(l => l.map(i => i.id === id ? { ...i, is_coupang: !i.is_coupang } : i));
+    await upsertShoppingItem({ id, is_coupang: !item.is_coupang });
   };
 
-  const addItem = (text, isCoupang) => {
-    if (modalOpen === 'g') {
-      setGroceries(prev => [...prev, { id: Date.now(), text, checked: false, isCoupang }]);
-    } else {
-      setSupplies(prev => [...prev, { id: Date.now(), text, checked: false, isCoupang }]);
+  const addItem = async (text, isCoupang) => {
+    const type = modalOpen === 'g' ? 'g' : 's';
+    const s = type === 'g' ? setGroceries : setSupplies;
+    
+    const saved = await upsertShoppingItem({ text, type, is_coupang: isCoupang, checked: false });
+    if (saved) {
+      s(prev => [...prev, saved]);
     }
   };
 
@@ -84,6 +122,8 @@ const ShoppingList = () => {
   const currentSetter = activeTab === 'g' ? setGroceries : setSupplies;
   const checkedCount = currentItems.filter(i => i.checked).length;
   const totalCount = currentItems.length;
+
+  if (loading) return <div className="shopping-container page-transition" style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'60vh'}}><Loader size={32} className="spin" style={{animation:'spin 1s linear infinite'}}/></div>;
 
   /* Desktop two-column card */
   const Col = ({ items, type, icon, title, color }) => {
@@ -100,12 +140,12 @@ const ShoppingList = () => {
             <div key={item.id} className={`shop-item ${item.checked ? 'done' : ''}`} onClick={() => toggle(item.id, type)}>
               <div className={`chk ${item.checked ? 'chk-on' : ''}`}/>
               <span className="item-text">{item.text}</span>
-              {item.isCoupang && (
+              {item.is_coupang && (
                 <span className="rocket-badge" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, type); }}>
                   🚀
                 </span>
               )}
-              {!item.isCoupang && (
+              {!item.is_coupang && (
                 <button 
                   className="rocket-toggle-off"
                   onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, type); }}
@@ -167,7 +207,7 @@ const ShoppingList = () => {
               <div key={item.id} className={`shop-item-mobile ${item.checked ? 'done' : ''}`} onClick={(e) => { e.stopPropagation(); toggle(item.id, 'g'); }} style={{padding:'6px 4px', gap:'4px', display:'flex', alignItems:'center'}}>
                 <div style={{flexShrink:0, width: '18px', height: '18px'}} className={`chk ${item.checked ? 'chk-on' : ''}`}/>
                 <span className="item-text" style={{fontSize:'0.8rem', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', letterSpacing: '-0.02em'}}>{item.text}</span>
-                {item.isCoupang ? (
+                {item.is_coupang ? (
                   <span className="rocket-badge" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 'g'); }} style={{padding:'2px', fontSize:'0.75rem', flexShrink: 0}}>🚀</span>
                 ) : (
                   <button className="rocket-toggle-off" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 'g'); }} style={{padding:'2px', fontSize:'0.75rem', flexShrink: 0}}>🚀</button>
@@ -205,7 +245,7 @@ const ShoppingList = () => {
               <div key={item.id} className={`shop-item-mobile ${item.checked ? 'done' : ''}`} onClick={(e) => { e.stopPropagation(); toggle(item.id, 's'); }} style={{padding:'6px 4px', gap:'4px', display:'flex', alignItems:'center'}}>
                 <div style={{flexShrink:0, width: '18px', height: '18px'}} className={`chk ${item.checked ? 'chk-on' : ''}`}/>
                 <span className="item-text" style={{fontSize:'0.8rem', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', letterSpacing: '-0.02em'}}>{item.text}</span>
-                {item.isCoupang ? (
+                {item.is_coupang ? (
                   <span className="rocket-badge" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 's'); }} style={{padding:'2px', fontSize:'0.75rem', flexShrink: 0}}>🚀</span>
                 ) : (
                   <button className="rocket-toggle-off" onClick={(e) => { e.stopPropagation(); toggleCoupang(item.id, 's'); }} style={{padding:'2px', fontSize:'0.75rem', flexShrink: 0}}>🚀</button>
