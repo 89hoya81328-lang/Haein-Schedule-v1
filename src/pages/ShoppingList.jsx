@@ -87,9 +87,13 @@ const ShoppingList = () => {
   };
 
   const clear = async (type) => {
-    const s = type === 'g' ? setGroceries : setSupplies;
     const list = type === 'g' ? groceries : supplies;
     const doneItems = list.filter(i => i.checked);
+    if (doneItems.length === 0) return;
+    
+    if (!window.confirm('완료된 항목을 모두 삭제하시겠습니까?')) return;
+
+    const s = type === 'g' ? setGroceries : setSupplies;
     
     s(l => l.filter(i => !i.checked));
     

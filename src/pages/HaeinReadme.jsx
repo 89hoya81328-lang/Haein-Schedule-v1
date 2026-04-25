@@ -170,6 +170,7 @@ const HaeinReadme = () => {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm('가이드 섹션을 정말로 삭제하시겠습니까?')) return;
     setSections(secs => secs.filter(s => s.id !== id));
     await deleteGuide(id);
   };

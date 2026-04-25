@@ -33,14 +33,14 @@ const compressImage = (file) => new Promise((resolve) => {
 });
 
 const FamilyBoard = () => {
-  const { caretakerEmojis } = useColors();
-  const authors = Object.keys(caretakerEmojis);
-  const [currentUser, setCurrentUser] = useState(authors[0] || '엄마');
+  const { caretakerColors, caretakerEmojis, authors, currentUser } = useColors('board');
+  const [activeTab, setActiveTab] = useState('gallery'); // 'gallery' or 'board'
   const [showSettings, setShowSettings] = useState(false);
   const [showAuthorSelect, setShowAuthorSelect] = useState(false);
   const [media, setMedia] = useState([]);
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState('');
+  const [msgAuthor, setMsgAuthor] = useState('');
   const [mediaIndex, setMediaIndex] = useState(0);
   const [showGallery, setShowGallery] = useState(false);
   const [editingMsgId, setEditingMsgId] = useState(null);
@@ -54,6 +54,12 @@ const FamilyBoard = () => {
   const [loading, setLoading] = useState(true);
   const fileInputRef = React.useRef(null);
   const getEmoji = (a) => caretakerEmojis[a] || '💬';
+
+  useEffect(() => {
+    if (currentUser && !msgAuthor) {
+      setMsgAuthor(currentUser);
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     const loadBoardData = async () => {
@@ -88,11 +94,11 @@ const FamilyBoard = () => {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!newMsg.trim()) return;
+    if (!newMsg.trim() || !msgAuthor) return;
     const now = new Date();
     const pad = n => String(n).padStart(2, '0');
     const dateStr = `${now.getFullYear().toString().slice(2)}.${pad(now.getMonth()+1)}.${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    const row = { author: currentUser, text: newMsg, date: dateStr };
+    const row = { author: msgAuthor, text: newMsg, date: dateStr };
     const saved = await insertMessage(row);
     if (saved) setMessages(prev => [saved, ...prev]);
     setNewMsg('');
@@ -107,9 +113,13 @@ const FamilyBoard = () => {
     setEditingMsgId(null);
   };
 
-  const handleDeleteMsg = async (id) => {
-    const ok = await deleteMessage(id);
-    if (ok) setMessages(prev => prev.filter(m => m.id !== id));
+  const handleDeleteMessage = async (id) => {
+    if (!window.confirm('정말로 삭제하시겠습니까?')) return;
+    
+    const success = await deleteMessage(id);
+    if (success) {
+      setMessages(prev => prev.filter(m => m.id !== id));
+    }
   };
 
   const startEditCaption = (m) => { setEditingCaptionId(m.id); setCaptionText(m.caption); };
@@ -123,6 +133,8 @@ const FamilyBoard = () => {
 
   const deleteSelectedMediaHandler = async () => {
     if (selectedMedia.length === 0) return;
+    if (!window.confirm('선택한 사진을 정말로 삭제하시겠습니까?')) return;
+    
     const toDelete = media.filter(m => selectedMedia.includes(m.id));
     const paths = toDelete.map(m => m.storage_path).filter(Boolean);
     const ids = toDelete.map(m => m.id);

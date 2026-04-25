@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Trash2, Check, GripVertical } from 'lucide-react';
+import { X, Plus, Trash2, Check, ChevronUp, ChevronDown } from 'lucide-react';
 import { useColors } from '../store/ColorContext';
 
 const EMOJI_CATEGORIES = [
@@ -104,7 +104,6 @@ export const MemberSettings = ({ onClose, type = 'board' }) => {
   
   const [editingAuthor, setEditingAuthor] = useState(null);
   const [editingName, setEditingName] = useState('');
-  const [draggedIdx, setDraggedIdx] = useState(null);
 
   const handleAddPerson = (e) => {
     e.preventDefault();
@@ -123,24 +122,6 @@ export const MemberSettings = ({ onClose, type = 'board' }) => {
       renameCaretaker(author, editingName.trim());
     }
     setEditingAuthor(null);
-  };
-
-  const handleDragStart = (e, idx) => {
-    setDraggedIdx(idx);
-    e.dataTransfer.effectAllowed = 'move';
-    setTimeout(() => { if (e.target) e.target.style.opacity = '0.5'; }, 0);
-  };
-
-  const handleDragOver = (e, idx) => {
-    e.preventDefault();
-    if (draggedIdx === null || draggedIdx === idx) return;
-    reorderCaretakers(draggedIdx, idx);
-    setDraggedIdx(idx);
-  };
-
-  const handleDragEnd = (e) => {
-    setDraggedIdx(null);
-    if (e.target) e.target.style.opacity = '1';
   };
 
   const handleClose = () => {
@@ -164,17 +145,15 @@ export const MemberSettings = ({ onClose, type = 'board' }) => {
               <div 
                 key={p} 
                 className="color-row" 
-                draggable
-                onDragStart={(e) => handleDragStart(e, idx)}
-                onDragOver={(e) => handleDragOver(e, idx)}
-                onDragEnd={handleDragEnd}
                 style={{
                   display: 'flex', justifyContent: 'space-between', marginBottom: '12px', alignItems: 'center',
-                  background: 'white', padding: '8px 12px', borderRadius: '12px', border: '1px solid #eee',
-                  cursor: 'grab'
+                  background: 'white', padding: '8px 12px', borderRadius: '12px', border: '1px solid #eee'
                 }}
               >
-                <div style={{display:'flex', alignItems:'center', color:'#ccc', marginRight:'12px', cursor:'grab'}}><GripVertical size={16}/></div>
+                <div style={{display:'flex', flexDirection:'column', alignItems:'center', color:'#ccc', marginRight:'12px'}}>
+                  <button onClick={() => idx > 0 && reorderCaretakers(idx, idx - 1)} disabled={idx === 0} style={{background:'none', border:'none', color: idx === 0 ? '#eee' : '#999', cursor: idx === 0 ? 'default' : 'pointer', padding:0}}><ChevronUp size={20}/></button>
+                  <button onClick={() => idx < authors.length - 1 && reorderCaretakers(idx, idx + 1)} disabled={idx === authors.length - 1} style={{background:'none', border:'none', color: idx === authors.length - 1 ? '#eee' : '#999', cursor: idx === authors.length - 1 ? 'default' : 'pointer', padding:0}}><ChevronDown size={20}/></button>
+                </div>
                 {editingAuthor === p ? (
                   <div style={{display:'flex', gap:'8px', flex:1, marginRight:'12px'}}>
                     <input 
