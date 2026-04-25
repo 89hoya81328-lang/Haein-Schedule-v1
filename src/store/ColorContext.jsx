@@ -10,6 +10,7 @@ export const ColorProvider = ({ children }) => {
   const [schedEmojis, setSchedEmojis] = useState({ 아빠: '⭐', 엄마: '🌸', 할머니: '🍀' });
   const [loaded, setLoaded] = useState(false);
   const [currentUser, setCurrentUser] = useState(localStorage.getItem('haein_current_user') || null);
+  const [newProfileName, setNewProfileName] = useState('');
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -135,7 +136,7 @@ export const ColorProvider = ({ children }) => {
               <span style={{fontSize: '0.8rem', color: '#999'}}>(이후 내 이름이 항상 맨 위에 고정됩니다)</span>
             </p>
             
-            <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+            <div style={{display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '40vh', overflowY: 'auto', marginBottom: '16px'}}>
               {allAuthors.map(author => (
                 <button
                   key={author}
@@ -144,7 +145,7 @@ export const ColorProvider = ({ children }) => {
                     padding: '16px', borderRadius: '16px', border: '1px solid #eee',
                     background: '#f8f9fa', fontSize: '1.1rem', fontWeight: 'bold',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s', flexShrink: 0
                   }}
                 >
                   <span style={{fontSize: '1.5rem'}}>{boardEmojis[author]}</span>
@@ -152,6 +153,41 @@ export const ColorProvider = ({ children }) => {
                 </button>
               ))}
             </div>
+
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const name = newProfileName.trim();
+                if (!name) return;
+                
+                const newBc = { ...boardColors, [name]: '#e0e0e0' };
+                const newBe = { ...boardEmojis, [name]: '👤' };
+                const newSc = { ...schedColors, [name]: '#e0e0e0' };
+                const newSe = { ...schedEmojis, [name]: '👤' };
+                
+                setBoardColors(newBc); saveSettings('boardColors', newBc);
+                setBoardEmojis(newBe); saveSettings('boardEmojis', newBe);
+                setSchedColors(newSc); saveSettings('schedColors', newSc);
+                setSchedEmojis(newSe); saveSettings('schedEmojis', newSe);
+                
+                handleSetCurrentUser(name);
+              }}
+              style={{ display: 'flex', gap: '8px', borderTop: '1px solid #eee', paddingTop: '16px' }}
+            >
+              <input 
+                type="text" 
+                placeholder="새로운 역할 (예: 외할아버지)" 
+                value={newProfileName}
+                onChange={e => setNewProfileName(e.target.value)}
+                style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #ddd', fontSize: '1rem' }}
+              />
+              <button 
+                type="submit"
+                style={{ background: 'var(--text-main)', color: 'white', border: 'none', borderRadius: '12px', padding: '0 16px', fontWeight: 'bold' }}
+              >
+                등록
+              </button>
+            </form>
           </div>
         </div>
       )}
