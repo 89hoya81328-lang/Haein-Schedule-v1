@@ -123,14 +123,12 @@ const ShoppingList = () => {
   };
 
   const currentItems = activeTab === 'g' ? groceries : supplies;
-  const currentSetter = activeTab === 'g' ? setGroceries : setSupplies;
   const checkedCount = currentItems.filter(i => i.checked).length;
-  const totalCount = currentItems.length;
 
   if (loading) return <div className="shopping-container page-transition" style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'60vh'}}><Loader size={32} className="spin" style={{animation:'spin 1s linear infinite'}}/></div>;
 
   /* Desktop two-column card */
-  const Col = ({ items, type, icon, title, color }) => {
+  const renderCol = ({ items, type, icon, title, color }) => {
     const cc = items.filter(i => i.checked).length;
     return (
       <div className="shop-col" style={{ backgroundColor: color }}>
@@ -276,8 +274,8 @@ const ShoppingList = () => {
       {/* ===== DESKTOP LAYOUT ===== */}
       <div className="shop-desktop">
         <div className="shop-grid">
-          <Col items={groceries} type="g" icon={<Apple size={18}/>} title="식자재" color="#f0f9f1"/>
-          <Col items={supplies} type="s" icon={<Baby size={18}/>} title="육아 용품" color="#fef0f5"/>
+          {renderCol({items: groceries, type: "g", icon: <Apple size={18}/>, title: "식자재", color: "#f0f9f1"})}
+          {renderCol({items: supplies, type: "s", icon: <Baby size={18}/>, title: "육아 용품", color: "#fef0f5"})}
         </div>
       </div>
 

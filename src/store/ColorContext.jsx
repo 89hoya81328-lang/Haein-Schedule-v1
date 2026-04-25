@@ -110,7 +110,7 @@ export const ColorProvider = ({ children }) => {
     };
   };
 
-  const allAuthors = Object.keys(boardEmojis);
+  const allAuthors = Object.keys(emojis);
 
   return (
     <ColorContext.Provider value={getContextValue}>

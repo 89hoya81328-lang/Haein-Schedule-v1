@@ -86,7 +86,7 @@ const CALENDAR_MONTHS = Array.from({ length: 6 }, (_, i) => {
 });
 
 const Scheduler = () => {
-  const { caretakerColors, caretakerEmojis, updateColor, updateEmoji, addCaretaker, authors } = useColors();
+  const { caretakerColors, caretakerEmojis, updateColor, authors } = useColors();
   const [weeks, setWeeks] = useState(INITIAL_WEEKS);
   const [weekIndex, setWeekIndex] = useState(() => {
     const today = new Date();

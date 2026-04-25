@@ -33,7 +33,7 @@ const compressImage = (file) => new Promise((resolve) => {
 });
 
 const FamilyBoard = () => {
-  const { caretakerColors, caretakerEmojis, authors, currentUser } = useColors('board');
+  const { caretakerColors, caretakerEmojis, authors, currentUser, setCurrentUser } = useColors();
   const [activeTab, setActiveTab] = useState('gallery'); // 'gallery' or 'board'
   const [showSettings, setShowSettings] = useState(false);
   const [showAuthorSelect, setShowAuthorSelect] = useState(false);
