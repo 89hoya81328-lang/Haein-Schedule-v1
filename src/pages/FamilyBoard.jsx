@@ -365,30 +365,57 @@ const FamilyBoard = () => {
       )}
 
       {/* Author Select Modal */}
-      {showAuthorSelect && (
+      {showAuthorSelect && (() => {
+        const CIRCLE_RADIUS = 110;
+        return (
         <div className="modal-overlay" onClick={() => setShowAuthorSelect(false)} style={{zIndex: 9000}}>
-          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{padding: '24px', maxWidth: '340px', margin: 'auto', borderRadius: '24px', height: 'auto', maxHeight: '90vh'}}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{padding: '24px', maxWidth: '380px', margin: 'auto', borderRadius: '24px', height: 'auto', maxHeight: '90vh'}}>
             <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center'}}>
               <h4 style={{margin: 0, fontSize: '1.2rem', fontWeight: '900'}}>작성자 선택</h4>
               <button onClick={() => setShowAuthorSelect(false)} style={{background: '#f0f0f0', border: 'none', cursor: 'pointer', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><X size={18}/></button>
             </div>
-            <div style={{display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto', paddingBottom: '10px', scrollbarWidth: 'none'}}>
-              {authors.map(a => (
-                <button key={a} onClick={() => { setCurrentUser(a); setShowAuthorSelect(false); }}
-                  style={{display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 20px', borderRadius: '20px', border: 'none', background: a === currentUser ? '#f8e8ea' : '#fff', color: a === currentUser ? 'var(--text-main)' : '#333', fontWeight: a === currentUser ? '900' : '700', fontSize: '1.05rem', cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s', boxShadow: a === currentUser ? '0 0 0 2px var(--text-main)' : '0 4px 12px rgba(0,0,0,0.03)'}}
-                  onPointerDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
-                  onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
-                  onPointerLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                >
-                  <span style={{fontSize: '1.5rem'}}>{getEmoji(a)}</span>
-                  <span>{a}</span>
-                  {a === currentUser && <Check size={18} style={{marginLeft: 'auto'}}/>}
-                </button>
-              ))}
+            <div style={{position: 'relative', width: `${CIRCLE_RADIUS*2 + 80}px`, height: `${CIRCLE_RADIUS*2 + 80}px`, margin: '0 auto'}}>
+              {authors.map((a, i) => {
+                const angle = (i * 360) / authors.length;
+                const rad = angle * Math.PI / 180;
+                const x = Math.sin(rad) * CIRCLE_RADIUS;
+                const y = -Math.cos(rad) * CIRCLE_RADIUS;
+                const isSelected = a === currentUser;
+                return (
+                  <button
+                    key={a}
+                    onClick={() => { setCurrentUser(a); setShowAuthorSelect(false); }}
+                    style={{
+                      position: 'absolute', top: '50%', left: '50%',
+                      transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
+                      width: '76px', height: '76px', borderRadius: '50%', border: isSelected ? '3px solid var(--text-main)' : 'none',
+                      background: caretakerColors[a] || '#f8f9fa',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', boxShadow: isSelected ? '0 0 0 3px rgba(0,0,0,0.1)' : '0 4px 10px rgba(0,0,0,0.1)',
+                      transition: 'transform 0.2s', padding: '0'
+                    }}
+                    onPointerDown={e => e.currentTarget.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(0.9)`}
+                    onPointerUp={e => e.currentTarget.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(1)`}
+                    onPointerLeave={e => e.currentTarget.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(1)`}
+                  >
+                    <span style={{fontSize: '1.8rem', marginBottom: '2px'}}>{getEmoji(a)}</span>
+                    <span style={{fontSize: '0.75rem', fontWeight: 'bold', color: '#333', background: 'rgba(255,255,255,0.7)', padding: '2px 6px', borderRadius: '10px'}}>{a}</span>
+                  </button>
+                );
+              })}
+              <div style={{
+                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                textAlign: 'center', width: '100px', display: 'flex', flexDirection: 'column', alignItems: 'center'
+              }}>
+                <span style={{fontSize: '1.2rem', marginBottom: '4px'}}>✨</span>
+                <span style={{fontWeight: '900', fontSize: '1.2rem', color: 'var(--text-main)', letterSpacing: '2px'}}>최해인</span>
+                <span style={{fontSize: '1.2rem', marginTop: '4px'}}>✨</span>
+              </div>
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {showSettings && <MemberSettings onClose={() => setShowSettings(false)} />}
       <input type="file" ref={fileInputRef} style={{display:'none'}} accept="image/*,video/*" onChange={handleFileUpload} />

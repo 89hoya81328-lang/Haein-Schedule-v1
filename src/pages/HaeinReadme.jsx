@@ -18,20 +18,38 @@ const ReadmeSection = ({ section, onSave, onDelete }) => {
   const [newItem, setNewItem] = useState('');
   const [hovered, setHovered] = useState(false);
 
+  // Sync local state when section prop changes (e.g. from realtime)
+  useEffect(() => {
+    setTitle(section.title);
+    setItems([...(section.items || [])]);
+  }, [section.title, section.items]);
+
   const handleSave = () => {
     onSave(section.id, title, items);
     setEditing(false);
   };
 
+  const handleCancel = () => {
+    setEditing(false);
+    setTitle(section.title);
+    setItems([...(section.items || [])]);
+  };
+
   const handleAddItem = (e) => {
     e.preventDefault();
     if (!newItem.trim()) return;
-    setItems(prev => [...prev, newItem.trim()]);
+    const updatedItems = [...items, newItem.trim()];
+    setItems(updatedItems);
     setNewItem('');
+    // Auto-save when adding items
+    onSave(section.id, title, updatedItems);
   };
 
   const handleRemoveItem = (idx) => {
-    setItems(items.filter((_, i) => i !== idx));
+    const updatedItems = items.filter((_, i) => i !== idx);
+    setItems(updatedItems);
+    // Auto-save when removing items
+    onSave(section.id, title, updatedItems);
   };
 
   return (
@@ -63,7 +81,7 @@ const ReadmeSection = ({ section, onSave, onDelete }) => {
           {editing && (
             <>
               <button className="save-icon-btn" onClick={handleSave}><Check size={14} /></button>
-              <button className="cancel-icon-btn" onClick={() => { setEditing(false); setTitle(section.title); setItems([...section.items]); }}><X size={14} /></button>
+              <button className="cancel-icon-btn" onClick={handleCancel}><X size={14} /></button>
             </>
           )}
         </div>
@@ -79,7 +97,14 @@ const ReadmeSection = ({ section, onSave, onDelete }) => {
                 <input
                   className="item-input"
                   value={item}
-                  onChange={e => setItems(items.map((v, i) => i === idx ? e.target.value : v))}
+                  onChange={e => {
+                    const updated = items.map((v, i) => i === idx ? e.target.value : v);
+                    setItems(updated);
+                  }}
+                  onBlur={() => {
+                    // Auto-save on blur for inline edits
+                    onSave(section.id, title, items);
+                  }}
                 />
                 <button className="remove-item-btn" onClick={() => handleRemoveItem(idx)}><Trash2 size={13} /></button>
               </div>

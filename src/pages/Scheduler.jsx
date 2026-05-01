@@ -32,6 +32,8 @@ const generateDynamicWeeks = (numWeeks = 26) => {
 
       days.push({
         date: date,
+        month: m,
+        year: d.getFullYear(),
         day: ['일','월','화','수','목','금','토'][dow],
         isWeekend,
         holiday: HOLIDAYS[key] || '',
@@ -90,13 +92,11 @@ const Scheduler = () => {
   const [weeks, setWeeks] = useState(INITIAL_WEEKS);
   const [weekIndex, setWeekIndex] = useState(() => {
     const today = new Date();
-    const todayDate = today.getDate();
-    const todayMonth = today.getMonth() + 1;
+    const tY = today.getFullYear();
+    const tM = today.getMonth() + 1;
+    const tD = today.getDate();
     const idx = INITIAL_WEEKS.findIndex(w =>
-      w.days.some(d => {
-        const dMonth = (d.date < w.days[0].date && w.monthLabel.includes('5')) ? 5 : w.month;
-        return dMonth === todayMonth && d.date === todayDate;
-      })
+      w.days.some(d => d.year === tY && d.month === tM && d.date === tD)
     );
     return idx >= 0 ? idx : 0;
   });
@@ -234,11 +234,9 @@ const Scheduler = () => {
   };
 
   const curDate = new Date();
-  const todayMatch = (dMonth, dDate) => {
-    return curDate.getFullYear() === 2026 && 
-           curDate.getMonth() + 1 === dMonth && 
-           curDate.getDate() === dDate;
-  };
+  const todayYear = curDate.getFullYear();
+  const todayMonth = curDate.getMonth() + 1;
+  const todayDate = curDate.getDate();
 
   return (
     <div className="scheduler-container page-transition">
@@ -246,7 +244,7 @@ const Scheduler = () => {
         <button className="arrow-btn" onClick={() => setWeekIndex(i => Math.max(0, i - 1))} disabled={weekIndex === 0}><ChevronLeft size={20}/></button>
         <div className="week-center">
           <span className="week-label">{week.label}</span>
-          <span className="week-sub">{week.month}/{week.days[0].date}({week.days[0].day}) ~ {week.days[6].date >= week.days[0].date ? week.month : week.month+1}/{week.days[6].date}({week.days[6].day})</span>
+          <span className="week-sub">{week.days[0].month}/{week.days[0].date}({week.days[0].day}) ~ {week.days[6].month}/{week.days[6].date}({week.days[6].day})</span>
         </div>
         <button className="arrow-btn" onClick={() => setWeekIndex(i => Math.min(weeks.length - 1, i + 1))} disabled={weekIndex === weeks.length - 1}><ChevronRight size={20}/></button>
       </div>
@@ -266,8 +264,7 @@ const Scheduler = () => {
         {week.days.map((d, i) => {
           const isH = !!d.holiday;
           const isW = d.isWeekend;
-          const currentDayMonth = d.date > 20 && week.monthLabel.includes('5') && d.date >= 1 && d.date <= 6 ? 5 : week.month;
-          const isCurrentToday = todayMatch(currentDayMonth, d.date);
+          const isCurrentToday = d.year === todayYear && d.month === todayMonth && d.date === todayDate;
           
           return (
             <div key={i} className={`sched-row ${isH ? 'row-holiday' : ''} ${isW ? 'row-weekend' : ''}`}>
