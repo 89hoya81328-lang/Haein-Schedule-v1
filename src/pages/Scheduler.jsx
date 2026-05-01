@@ -1,20 +1,26 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useColors } from '../store/ColorContext';
 import { Settings2, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, Plus, Check } from 'lucide-react';
 import { MemberSettings } from '../components/MemberSettings';
 import { supabase, fetchSchedules, upsertSchedule } from '../lib/supabase';
 import './Scheduler.css';
 
-const generateDynamicWeeks = (numWeeks = 26) => {
+const HOLIDAYS = { '01-01': '신정', '02-16': '설날', '02-17': '설날', '02-18': '설날', '03-01': '삼일절', '05-05': '어린이날', '05-24': '부처님오신날', '05-25': '대체공휴일', '06-06': '현충일', '08-15': '광복절', '09-24': '추석', '09-25': '추석', '09-26': '추석', '10-03': '개천절', '10-09': '한글날', '12-25': '크리스마스' };
+
+const generateDynamicWeeks = (pastWeeks = 12, futureWeeks = 26) => {
   const weeks = [];
   const today = new Date();
   const currentDay = today.getDay();
   const diff = today.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
-  let startOfWeek = new Date(today.getFullYear(), today.getMonth(), diff);
+  const thisMonday = new Date(today.getFullYear(), today.getMonth(), diff);
 
-  const HOLIDAYS = { '01-01': '신정', '02-16': '설날', '02-17': '설날', '02-18': '설날', '03-01': '삼일절', '05-05': '어린이날', '05-24': '부처님오신날', '05-25': '대체공휴일', '06-06': '현충일', '08-15': '광복절', '09-24': '추석', '09-25': '추석', '09-26': '추석', '10-03': '개천절', '10-09': '한글날', '12-25': '크리스마스' };
+  // Start from pastWeeks ago
+  let startOfWeek = new Date(thisMonday);
+  startOfWeek.setDate(startOfWeek.getDate() - pastWeeks * 7);
 
-  for (let i = 0; i < numWeeks; i++) {
+  const totalWeeks = pastWeeks + 1 + futureWeeks;
+
+  for (let i = 0; i < totalWeeks; i++) {
     const days = [];
     let weekMonth = startOfWeek.getMonth() + 1;
     let endMonth = weekMonth;
@@ -41,9 +47,13 @@ const generateDynamicWeeks = (numWeeks = 26) => {
       });
     }
 
-    let label = `${i}주 후`;
-    if (i === 0) label = '이번 주';
-    if (i === 1) label = '다음 주';
+    const offset = i - pastWeeks; // negative = past, 0 = this week, positive = future
+    let label;
+    if (offset === 0) label = '이번 주';
+    else if (offset === 1) label = '다음 주';
+    else if (offset === -1) label = '지난 주';
+    else if (offset < 0) label = `${Math.abs(offset)}주 전`;
+    else label = `${offset}주 후`;
 
     const monthLabel = weekMonth === endMonth ? `${weekMonth}월` : `${weekMonth}~${endMonth}월`;
     const yyyy = startOfWeek.getFullYear();
@@ -63,8 +73,7 @@ const generateDynamicWeeks = (numWeeks = 26) => {
   return weeks;
 };
 
-function generateMonth(year, month) {
-  const HOLIDAYS = { '01-01': '신정', '02-16': '설날', '02-17': '설날', '02-18': '설날', '03-01': '삼일절', '05-05': '어린이날', '05-24': '부처님오신날', '05-25': '대체공휴일', '06-06': '현충일', '08-15': '광복절', '09-24': '추석', '09-25': '추석', '09-26': '추석', '10-03': '개천절', '10-09': '한글날', '12-25': '크리스마스' };
+function generateMonth(year, month, hasDataSet) {
   const firstDow = new Date(year, month - 1, 1).getDay();
   const daysInMonth = new Date(year, month, 0).getDate();
   const today = new Date();
@@ -74,32 +83,20 @@ function generateMonth(year, month) {
       const d = i + 1;
       const key = `${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       const dow = (firstDow + i) % 7;
-      return { date: d, isWeekend: dow === 0 || dow === 6, holiday: HOLIDAYS[key] || null, isToday: today.getFullYear() === year && today.getMonth() + 1 === month && today.getDate() === d };
+      const dateKey = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      return { date: d, isWeekend: dow === 0 || dow === 6, holiday: HOLIDAYS[key] || null, isToday: today.getFullYear() === year && today.getMonth() + 1 === month && today.getDate() === d, hasData: hasDataSet ? hasDataSet.has(dateKey) : false };
     })
   };
 }
 
-const INITIAL_WEEKS = generateDynamicWeeks(26); // 6 months
-
-const CALENDAR_MONTHS = Array.from({ length: 6 }, (_, i) => {
-  const d = new Date();
-  d.setMonth(d.getMonth() + i);
-  return generateMonth(d.getFullYear(), d.getMonth() + 1);
-});
+const PAST_WEEKS = 12;
+const INITIAL_WEEKS = generateDynamicWeeks(PAST_WEEKS, 26);
+const THIS_WEEK_INDEX = PAST_WEEKS; // index of "이번 주" in the array
 
 const Scheduler = () => {
   const { caretakerColors, caretakerEmojis, updateColor, authors } = useColors();
   const [weeks, setWeeks] = useState(INITIAL_WEEKS);
-  const [weekIndex, setWeekIndex] = useState(() => {
-    const today = new Date();
-    const tY = today.getFullYear();
-    const tM = today.getMonth() + 1;
-    const tD = today.getDate();
-    const idx = INITIAL_WEEKS.findIndex(w =>
-      w.days.some(d => d.year === tY && d.month === tM && d.date === tD)
-    );
-    return idx >= 0 ? idx : 0;
-  });
+  const [weekIndex, setWeekIndex] = useState(THIS_WEEK_INDEX);
   const [dbLoaded, setDbLoaded] = useState(false);
 
   useEffect(() => {
@@ -155,6 +152,28 @@ const Scheduler = () => {
   const [picker, setPicker] = useState(null); // { dayIdx, type }
   const [editNote, setEditNote] = useState(null); // { dayIdx, text }
   const [editFamily, setEditFamily] = useState(null); // { dayIdx, text }
+
+  // Build a set of dates that have schedule data (for calendar coloring)
+  const hasDataSet = useMemo(() => {
+    const set = new Set();
+    weeks.forEach(w => {
+      w.days.forEach(d => {
+        if (d.drop || d.pick || d.family || (d.notes && d.notes.length > 0)) {
+          set.add(`${d.year}-${String(d.month).padStart(2,'0')}-${String(d.date).padStart(2,'0')}`);
+        }
+      });
+    });
+    return set;
+  }, [weeks]);
+
+  // Generate calendar months: 3 past + current + 5 future = 9 months
+  const calendarMonths = useMemo(() => {
+    return Array.from({ length: 9 }, (_, i) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() + i - 3);
+      return generateMonth(d.getFullYear(), d.getMonth() + 1, hasDataSet);
+    });
+  }, [hasDataSet]);
 
   const caretakers = authors;
   const week = weeks[weekIndex];
@@ -218,14 +237,9 @@ const Scheduler = () => {
     setPicker(null);
   };
 
-  const handleCalendarDateClick = (date, month) => {
+  const handleCalendarDateClick = (date, month, year) => {
     const targetWeekIdx = weeks.findIndex(w => 
-      w.days.some(d => {
-        // Since mock data dates are unique within this small window, matching date is mostly enough.
-        // For month edge cases (e.g. May 1st to 3rd), w.month is 4 but it covers May 1-3. 
-        if (month === 5 && date <= 3) return w.weekId === 'w3' && d.date === date;
-        return d.date === date;
-      })
+      w.days.some(d => d.year === year && d.month === month && d.date === date)
     );
     if (targetWeekIdx >= 0) {
       setWeekIndex(targetWeekIdx);
@@ -381,14 +395,14 @@ const Scheduler = () => {
           <div className="calendar-sheet" onClick={e => e.stopPropagation()}>
             <div className="sheet-title"><span>달력</span><button onClick={() => setShowCalendar(false)}><X size={20}/></button></div>
             <div className="cal-scroll">
-              {CALENDAR_MONTHS.map((m, mi) => (
+              {calendarMonths.map((m, mi) => (
                 <div key={mi} className="mon-block">
                   <div className="mon-name">{m.title}</div>
                   <div className="cal-grid">
                     {['일','월','화','수','목','금','토'].map(d => <div key={d} className="cal-dn">{d}</div>)}
                     {Array.from({length: m.firstDow}).map((_,i)=><div key={`p${i}`}/>)}
                     {m.days.map((d,i) => (
-                      <div key={i} className={`cal-d ${d.holiday?'cal-hol':''} ${d.isWeekend?'cal-we':''} ${d.isToday?'today-circle':''}`} onClick={() => handleCalendarDateClick(d.date, m.month)}>
+                      <div key={i} className={`cal-d ${d.holiday?'cal-hol':''} ${d.isWeekend?'cal-we':''} ${d.isToday?'today-circle':''} ${d.hasData?'cal-has-data':'cal-no-data'}`} onClick={() => handleCalendarDateClick(d.date, m.month, m.year)}>
                         {d.date}
                         {d.holiday && <span className="cal-dot"/>}
                       </div>

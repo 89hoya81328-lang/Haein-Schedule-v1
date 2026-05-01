@@ -299,6 +299,30 @@
 .cal-we { color: #e56e8a; }
 .cal-dot { width: 4px; height: 4px; background: var(--holiday-text); border-radius: 50%; position: absolute; bottom: 4px; }
 
+/* Calendar data indicators */
+.cal-has-data {
+  background: #e8f4e8;
+  font-weight: 900;
+}
+.cal-has-data:hover {
+  background: #d0ecd0;
+}
+.cal-no-data {
+  color: #ccc;
+  font-weight: 500;
+}
+.cal-no-data.cal-hol,
+.cal-no-data.cal-we {
+  color: #ddd;
+}
+.cal-has-data.cal-hol,
+.cal-has-data.cal-we {
+  background: #fce8e8;
+}
+.cal-has-data.today-circle {
+  background: transparent;
+}
+
 /* =============================================
    RESPONSIVE: Desktop
    ============================================= */
